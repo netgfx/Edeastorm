@@ -1,6 +1,6 @@
 Here is the comprehensive blueprint and execution plan for the **Real-time Ideation App**. This document is designed to be fed into an LLM agent or followed by a development team to build the application from scratch.
 
-### **Project Blueprint: "IdeaFlow" Collaborative Canvas**
+### **Project Blueprint: "Edeastorm" Collaborative Canvas**
 
 #### **1. Project Overview**
 
@@ -52,7 +52,7 @@ Adopt the "Hybrid Real-time Sync" model:
 
 #### **Phase 1: Environment & Authentication**
 
-* [x] **Init**: Initialize Next.js project with TypeScript and Tailwind CSS. ✅ (Created `ideaflow` project with Next.js 15, TypeScript, Tailwind)
+* [x] **Init**: Initialize Next.js project with TypeScript and Tailwind CSS. ✅ (Created `edeastorm` project with Next.js 15, TypeScript, Tailwind)
 * [x] **Env Setup**: Create `.env` file with `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (for admin tasks), and `SUPABASE_ANON_KEY`. ✅ (Created `env.example.txt` template)
 * [x] **Database Schema**: ✅ (Created SQL migrations in `supabase/migrations/`)
   * Create `profiles` table (linked to Auth users). ✅
