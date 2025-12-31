@@ -1,84 +1,93 @@
-'use client';
+/** @format */
 
-export const dynamic = 'force-dynamic';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { 
-  Plus, 
-  Sparkles, 
-  MoreHorizontal, 
-  Clock, 
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  Sparkles,
+  MoreHorizontal,
+  Clock,
   Users,
   Archive,
   Trash2,
   LogOut,
   Settings,
-  ChevronDown
-} from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogFooter
-} from '@/components/ui/Dialog';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
-import { getUserBoards, createBoard, getOrganization, updateOrganization } from '@/lib/api';
-import { formatRelativeTime } from '@/lib/utils';
-import type { Tables } from '@/types/database';
-import toast from 'react-hot-toast';
+  DialogFooter,
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import {
+  getUserBoards,
+  createBoard,
+  getOrganization,
+  updateOrganization,
+} from "@/lib/api";
+import { formatRelativeTime } from "@/lib/utils";
+import type { Tables } from "@/types/database";
+import toast from "react-hot-toast";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
-  const [boards, setBoards] = useState<Tables<'boards'>[]>([]);
+
+  const [boards, setBoards] = useState<Tables<"boards">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newBoard, setNewBoard] = useState({
-    title: '',
-    problemStatement: '',
+    title: "",
+    problemStatement: "",
   });
 
-  const [organization, setOrganization] = useState<Tables<'organizations'> | null>(null);
+  const [organization, setOrganization] =
+    useState<Tables<"organizations"> | null>(null);
   const [isRenamingOrg, setIsRenamingOrg] = useState(false);
-  const [newOrgName, setNewOrgName] = useState('');
+  const [newOrgName, setNewOrgName] = useState("");
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
     }
   }, [status, router]);
 
   // Fetch boards
   useEffect(() => {
     async function fetchBoards() {
-      if (status === 'unauthenticated') {
+      if (status === "unauthenticated") {
         setIsLoading(false);
         return;
       }
 
-      if (status === 'authenticated' && session?.user?.id) {
+      if (status === "authenticated" && session?.user?.id) {
         try {
           const data = await getUserBoards(session.user.id);
           setBoards(data);
         } catch (error) {
-          console.error('Error fetching boards:', error);
-          toast.error('Failed to load boards');
+          console.error("Error fetching boards:", error);
+          toast.error("Failed to load boards");
         } finally {
           setIsLoading(false);
         }
-      } else if (status === 'authenticated' && !session?.user?.id) {
+      } else if (status === "authenticated" && !session?.user?.id) {
         // Session exists but ID is not yet available - might be a race condition
         // We'll wait a bit, but eventually stop the spinner
         const timeout = setTimeout(() => setIsLoading(false), 2000);
@@ -105,12 +114,12 @@ export default function DashboardPage() {
   // Create new board
   const handleCreateBoard = async () => {
     if (!newBoard.title.trim()) {
-      toast.error('Please enter a board title');
+      toast.error("Please enter a board title");
       return;
     }
 
     if (!session?.user?.id) {
-      toast.error('Please sign in to create a board');
+      toast.error("Please sign in to create a board");
       return;
     }
 
@@ -118,9 +127,11 @@ export default function DashboardPage() {
 
     try {
       const organizationId = session.user.organizationId;
-      
+
       if (!organizationId) {
-        toast.error('Unable to create board. You are not assigned to an organization.');
+        toast.error(
+          "Unable to create board. You are not assigned to an organization."
+        );
         return;
       }
 
@@ -132,14 +143,14 @@ export default function DashboardPage() {
       });
 
       if (board) {
-        toast.success('Board created successfully!');
+        toast.success("Board created successfully!");
         router.push(`/board/${board.short_id}`);
       } else {
-        toast.error('Failed to create board');
+        toast.error("Failed to create board");
       }
     } catch (error) {
-      console.error('Error creating board:', error);
-      toast.error('An error occurred');
+      console.error("Error creating board:", error);
+      toast.error("An error occurred");
     } finally {
       setIsCreating(false);
     }
@@ -149,28 +160,30 @@ export default function DashboardPage() {
     if (!newOrgName.trim() || !organization) return;
 
     try {
-      const updated = await updateOrganization(organization.id, { name: newOrgName });
+      const updated = await updateOrganization(organization.id, {
+        name: newOrgName,
+      });
       if (updated) {
         setOrganization(updated);
         setIsRenamingOrg(false);
-        toast.success('Organization renamed!');
+        toast.success("Organization renamed!");
       }
     } catch (error) {
-      toast.error('Failed to rename organization');
+      toast.error("Failed to rename organization");
     }
   };
 
   // Get initials from name
   const getInitials = (name: string) => {
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
-  if (status === 'loading' || isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center gap-3 text-zinc-400">
@@ -186,14 +199,17 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image 
-              src="/logo-icon.svg" 
-              alt="Edeastorm Logo" 
-              width={40} 
-              height={40} 
-              className="w-10 h-10"
-            />
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+              <Logo
+                width={38}
+                height={38}
+                colors={["#ffffff"]}
+                withStroke={true}
+                strokeWidth={0.5}
+                className="drop-shadow-md"
+              />
+            </div>
             <span className="text-xl font-bold gradient-text">Edeastorm</span>
           </Link>
 
@@ -208,10 +224,15 @@ export default function DashboardPage() {
               <button className="flex items-center gap-2 p-1 rounded-lg hover:bg-zinc-800 transition-colors">
                 <Avatar className="w-9 h-9">
                   {session?.user?.image && (
-                    <AvatarImage src={session.user.image} alt={session.user.name || ''} />
+                    <AvatarImage
+                      src={session.user.image}
+                      alt={session.user.name || ""}
+                    />
                   )}
                   <AvatarFallback>
-                    {getInitials(session?.user?.name || session?.user?.email || 'U')}
+                    {getInitials(
+                      session?.user?.name || session?.user?.email || "U"
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <ChevronDown className="w-4 h-4 text-zinc-400" />
@@ -221,14 +242,16 @@ export default function DashboardPage() {
               <div className="absolute right-0 top-full mt-2 w-56 py-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                 <div className="px-4 py-2 border-b border-zinc-700">
                   <p className="font-medium truncate">{session?.user?.name}</p>
-                  <p className="text-sm text-zinc-400 truncate">{session?.user?.email}</p>
+                  <p className="text-sm text-zinc-400 truncate">
+                    {session?.user?.email}
+                  </p>
                 </div>
                 <button className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-800 flex items-center gap-2 text-zinc-300">
                   <Settings className="w-4 h-4" />
                   Settings
                 </button>
-                <button 
-                  onClick={() => signOut({ callbackUrl: '/' })}
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-800 flex items-center gap-2 text-red-400"
                 >
                   <LogOut className="w-4 h-4" />
@@ -247,22 +270,32 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 mb-1 group">
               {isRenamingOrg ? (
                 <div className="flex items-center gap-2">
-                  <Input 
+                  <Input
                     value={newOrgName}
                     onChange={(e) => setNewOrgName(e.target.value)}
                     className="h-8 w-48 bg-zinc-900"
                     autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleRenameOrganization()}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleRenameOrganization()
+                    }
                   />
-                  <Button size="xs" onClick={handleRenameOrganization}>Save</Button>
-                  <Button size="xs" variant="ghost" onClick={() => setIsRenamingOrg(false)}>Cancel</Button>
+                  <Button size="xs" onClick={handleRenameOrganization}>
+                    Save
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setIsRenamingOrg(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               ) : (
                 <>
                   <h2 className="text-sm font-medium text-violet-400 uppercase tracking-wider">
-                    {organization?.name || 'Personal Workspace'}
+                    {organization?.name || "Personal Workspace"}
                   </h2>
-                  <button 
+                  <button
                     onClick={() => setIsRenamingOrg(true)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded text-zinc-500"
                   >
@@ -366,7 +399,9 @@ export default function DashboardPage() {
               <Input
                 placeholder="e.g., Product Roadmap Brainstorm"
                 value={newBoard.title}
-                onChange={(e) => setNewBoard({ ...newBoard, title: e.target.value })}
+                onChange={(e) =>
+                  setNewBoard({ ...newBoard, title: e.target.value })
+                }
                 autoFocus
               />
             </div>
@@ -378,7 +413,9 @@ export default function DashboardPage() {
               <Textarea
                 placeholder="What problem are we trying to solve? What's the challenge we're addressing?"
                 value={newBoard.problemStatement}
-                onChange={(e) => setNewBoard({ ...newBoard, problemStatement: e.target.value })}
+                onChange={(e) =>
+                  setNewBoard({ ...newBoard, problemStatement: e.target.value })
+                }
                 rows={3}
               />
               <p className="text-xs text-zinc-500 mt-1">

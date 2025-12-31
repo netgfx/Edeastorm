@@ -1,39 +1,58 @@
 /** @format */
 
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Sparkles, Users, Zap, Globe } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PricingNavLink } from "@/components/PricingNavLink";
+import { Logo } from "@/components/ui/Logo";
+import { auth } from "@/lib/auth";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+  const isAuthed = Boolean(session?.user);
+  const logoHref = isAuthed ? "/dashboard" : "/";
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image 
-              src="/logo-icon.svg" 
-              alt="Edeastorm Logo" 
-              width={40} 
-              height={40} 
-              className="w-10 h-10"
-            />
+          <Link href={logoHref} className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+              <Logo
+                width={38}
+                height={38}
+                colors={["#ffffff"]}
+                withStroke={true}
+                strokeWidth={0.5}
+                className="drop-shadow-md"
+              />
+            </div>
             <span className="text-xl font-bold gradient-text">Edeastorm</span>
           </Link>
 
           <div className="flex items-center gap-4">
             <PricingNavLink />
-            <Link href="/auth/signin">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button>
-                Get Started
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            {isAuthed ? (
+              <Link href="/dashboard">
+                <Button>
+                  My Dashboard
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/signin">
+                  <Button variant="ghost">Sign In</Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button>
+                    Get Started
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -64,13 +83,13 @@ export default function HomePage() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in">
             <Link href="/dashboard">
-              <Button size="xl" className="min-w-[200px]">
+              <Button size="xl" className="min-w-50">
                 Start Free
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <Link href="#features">
-              <Button variant="outline" size="xl" className="min-w-[200px]">
+              <Button variant="outline" size="xl" className="min-w-50">
                 Learn More
               </Button>
             </Link>
@@ -95,7 +114,7 @@ export default function HomePage() {
               </div>
 
               {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-transparent to-transparent" />
             </div>
           </div>
         </div>
@@ -159,7 +178,7 @@ export default function HomePage() {
       <footer className="border-t border-zinc-800 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="font-semibold">Edeastorm</span>

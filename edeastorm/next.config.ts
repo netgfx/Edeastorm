@@ -3,7 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
+    // Disable preloading entries to reduce memory usage
+    preloadEntriesOnStart: false,
   },
+  // Empty turbopack config to acknowledge we're using Turbopack
+  turbopack: {},
   images: {
     remotePatterns: [
       {
