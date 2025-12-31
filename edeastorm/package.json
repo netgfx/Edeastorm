@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.89.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "flagsmith": "^10.0.0",
     "gsap": "^3.14.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.562.0",
@@ -31,6 +32,7 @@
     "react-hot-toast": "^2.6.0",
     "sanitize-html": "^2.17.0",
     "tailwind-merge": "^3.4.0",
+    "yet-another-react-lightbox": "^3.28.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
@@ -40,7 +42,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.0",
-    "cypress": "^15.8.1",
+    "cypress": "^13.17.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",

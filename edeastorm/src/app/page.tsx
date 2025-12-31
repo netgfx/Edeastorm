@@ -1,6 +1,10 @@
-import Link from 'next/link';
-import { ArrowRight, Sparkles, Users, Zap, Globe } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+/** @format */
+
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowRight, Sparkles, Users, Zap, Globe } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { PricingNavLink } from "@/components/PricingNavLink";
 
 export default function HomePage() {
   return (
@@ -9,13 +13,18 @@ export default function HomePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <Image 
+              src="/logo-icon.svg" 
+              alt="Edeastorm Logo" 
+              width={40} 
+              height={40} 
+              className="w-10 h-10"
+            />
             <span className="text-xl font-bold gradient-text">Edeastorm</span>
           </Link>
 
           <div className="flex items-center gap-4">
+            <PricingNavLink />
             <Link href="/auth/signin">
               <Button variant="ghost">Sign In</Button>
             </Link>
@@ -47,9 +56,9 @@ export default function HomePage() {
 
           {/* Subheadline */}
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10 animate-fade-in">
-            A beautiful, infinite canvas for team ideation sessions. 
-            Create sticky notes, share thoughts in real-time, and turn 
-            brainstorming into actionable insights.
+            A beautiful, infinite canvas for team ideation sessions. Create
+            sticky notes, share thoughts in real-time, and turn brainstorming
+            into actionable insights.
           </p>
 
           {/* CTA Buttons */}
@@ -100,7 +109,8 @@ export default function HomePage() {
             <span className="gradient-text"> better ideation</span>
           </h2>
           <p className="text-zinc-400 text-center max-w-2xl mx-auto mb-16">
-            Designed for teams who want to think together, not just meet together.
+            Designed for teams who want to think together, not just meet
+            together.
           </p>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -109,10 +119,12 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4 group-hover:bg-violet-500/20 transition-colors">
                 <Users className="w-6 h-6 text-violet-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Real-time Collaboration</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                Real-time Collaboration
+              </h3>
               <p className="text-zinc-400">
-                See teammates&apos; cursors and edits instantly. No refresh needed, 
-                just seamless collaboration.
+                See teammates&apos; cursors and edits instantly. No refresh
+                needed, just seamless collaboration.
               </p>
             </div>
 
@@ -123,8 +135,8 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Infinite Canvas</h3>
               <p className="text-zinc-400">
-                Never run out of space. Pan, zoom, and organize your ideas 
-                on an unlimited workspace.
+                Never run out of space. Pan, zoom, and organize your ideas on an
+                unlimited workspace.
               </p>
             </div>
 
@@ -135,8 +147,8 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Team Workspaces</h3>
               <p className="text-zinc-400">
-                Organize boards by team, manage permissions, and keep 
-                your ideation sessions secure.
+                Organize boards by team, manage permissions, and keep your
+                ideation sessions secure.
               </p>
             </div>
           </div>

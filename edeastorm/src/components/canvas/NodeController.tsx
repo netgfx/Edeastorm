@@ -56,34 +56,34 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
     (value: gsap.Point2D) => {
       const snapPoints = getSnapPoints();
       let bestSnapValue = value;
-      const radius = 25;
+      const snapRadius = 20; // Reduced from 25
       let closestDistance = Infinity;
 
       const target = mainDraggable.current?.target;
       if (!target) return value;
 
       const rect = target.getBoundingClientRect();
-      const xPos = Number(gsap.getProperty(target, 'x'));
-      const yPos = Number(gsap.getProperty(target, 'y'));
+      const xPos = value.x;
+      const yPos = value.y;
 
-      // Check current element's corner and center points
+      // Check current element's corner and center points based on proposed position
       const currentPoints = [
-        { x: xPos, y: yPos },
-        { x: xPos + rect.width, y: yPos },
-        { x: xPos, y: yPos + rect.height },
-        { x: xPos + rect.width, y: yPos + rect.height },
-        { x: xPos + rect.width / 2, y: yPos + rect.height / 2 },
+        { x: xPos, y: yPos, offsetX: 0, offsetY: 0 },
+        { x: xPos + rect.width, y: yPos, offsetX: rect.width, offsetY: 0 },
+        { x: xPos, y: yPos + rect.height, offsetX: 0, offsetY: rect.height },
+        { x: xPos + rect.width, y: yPos + rect.height, offsetX: rect.width, offsetY: rect.height },
+        { x: xPos + rect.width / 2, y: yPos + rect.height / 2, offsetX: rect.width / 2, offsetY: rect.height / 2 },
       ];
 
       currentPoints.forEach((dragPoint) => {
         snapPoints.forEach((snapPoint) => {
           const distance = getHypotenuse(snapPoint.x, snapPoint.y, dragPoint.x, dragPoint.y);
 
-          if (distance < radius && distance < closestDistance) {
+          if (distance < snapRadius && distance < closestDistance) {
             closestDistance = distance;
             bestSnapValue = {
-              x: value.x + (snapPoint.x - dragPoint.x),
-              y: value.y + (snapPoint.y - dragPoint.y),
+              x: snapPoint.x - dragPoint.offsetX,
+              y: snapPoint.y - dragPoint.offsetY,
             };
           }
         });
@@ -121,7 +121,7 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
       liveSnap: snap
         ? {
             points: snapCheck,
-            radius: 25,
+            radius: 20,
           }
         : false,
     })[0];

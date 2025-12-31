@@ -7,18 +7,26 @@ export const TILE_WIDTH = 140;
 export const TILE_HEIGHT = 140;
 
 // Default note color
-export const DEFAULT_NOTE_COLOR = '#FFED23';
+export const DEFAULT_NOTE_COLOR = 'yellow';
 
-// Note color palette
+// Note color palette - 6 readable colors with good contrast
 export const NOTE_COLORS: Record<string, string> = {
-  yellow: '#FFED23',
-  blue: '#2335FF',
-  green: '#23FF7F',
-  pink: '#FF23A3',
-  purple: '#7F23FF',
-  orange: '#FF7F23',
-  cyan: '#23D4FF',
-  red: '#FF4444',
+  yellow: '#FEF3C7',    // Soft yellow
+  pink: '#FBCFE8',      // Soft pink
+  blue: '#DBEAFE',      // Soft blue
+  green: '#D1FAE5',     // Soft green
+  purple: '#E9D5FF',    // Soft purple
+  orange: '#FED7AA',    // Soft orange
+};
+
+// Color names for UI display
+export const NOTE_COLOR_NAMES: Record<string, string> = {
+  yellow: 'Yellow',
+  pink: 'Pink',
+  blue: 'Blue',
+  green: 'Green',
+  purple: 'Purple',
+  orange: 'Orange',
 };
 
 // Color swatches in RGB format (for certain UI elements)

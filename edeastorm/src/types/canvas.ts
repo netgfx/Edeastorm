@@ -1,4 +1,6 @@
-import type { Tables } from './database';
+/** @format */
+
+import type { Tables } from "./database";
 
 // Canvas item types
 export interface Position {
@@ -21,7 +23,7 @@ export interface CanvasItemMetadata {
   alt?: string;
 }
 
-export interface CanvasItem extends Omit<Tables<'canvas_items'>, 'metadata'> {
+export interface CanvasItem extends Omit<Tables<"canvas_items">, "metadata"> {
   metadata: CanvasItemMetadata;
 }
 
@@ -40,10 +42,28 @@ export interface CursorPosition {
   userId: string;
 }
 
+// Board image types
+export interface BoardImage {
+  id: string;
+  board_id: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  width: number | null;
+  height: number | null;
+  caption: string | null;
+  display_order: number;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Board types
-export interface Board extends Tables<'boards'> {
-  creator?: Tables<'profiles'>;
-  collaborators?: Tables<'board_collaborators'>[];
+export interface Board extends Tables<"boards"> {
+  creator?: Tables<"profiles">;
+  collaborators?: Tables<"board_collaborators">[];
+  images?: BoardImage[];
   itemCount?: number;
 }
 
@@ -68,13 +88,13 @@ export interface SnapshotItem {
 
 // Realtime payload types
 export interface RealtimePayload<T> {
-  type: 'broadcast' | 'postgres_changes';
+  type: "broadcast" | "postgres_changes";
   event: string;
   payload: T;
 }
 
 export interface EntityChangePayload {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  eventType: "INSERT" | "UPDATE" | "DELETE";
   new: CanvasItem | null;
   old: { id: string } | null;
 }
@@ -88,7 +108,7 @@ export interface PresencePayload {
 // Room state
 export interface RoomState {
   connectedUsers: Record<string, UserPresence>;
-  roomData: Tables<'boards'> | null;
+  roomData: Tables<"boards"> | null;
   isConnected: boolean;
   error: Error | null;
 }
@@ -104,12 +124,12 @@ export interface DraggableContextType {
 }
 
 // Tool types
-export type ToolType = 'select' | 'pan' | 'note' | 'image' | 'header';
+export type ToolType = "select" | "pan" | "note" | "image" | "header";
 
 // Access check result
 export interface AccessCheckResult {
   hasAccess: boolean;
-  role: 'viewer' | 'contributor' | 'editor' | 'admin' | null;
+  role: "viewer" | "contributor" | "editor" | "admin" | null;
 }
 
 // API response types

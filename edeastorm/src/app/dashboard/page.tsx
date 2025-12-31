@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -186,9 +187,13 @@ export default function DashboardPage() {
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <Image 
+              src="/logo-icon.svg" 
+              alt="Edeastorm Logo" 
+              width={40} 
+              height={40} 
+              className="w-10 h-10"
+            />
             <span className="text-xl font-bold gradient-text">Edeastorm</span>
           </Link>
 

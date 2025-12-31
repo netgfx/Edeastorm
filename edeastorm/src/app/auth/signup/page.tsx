@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { Sparkles, Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -85,9 +86,13 @@ export default function SignUpPage() {
         {/* Logo */}
         <div className="text-center mb-8 relative z-10">
           <Link href="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-110 transition-transform duration-300">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <Image 
+              src="/logo-icon.svg" 
+              alt="Edeastorm Logo" 
+              width={48} 
+              height={48} 
+              className="w-12 h-12 group-hover:scale-110 transition-transform duration-300"
+            />
             <span className="text-3xl font-bold tracking-tight text-white">Edeastorm</span>
           </Link>
         </div>
