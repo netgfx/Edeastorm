@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { useNodeStore } from '@/store/nodeStore';
 import { NodeController } from './NodeController';
 import { StickyNote } from './StickyNote';
+import { Header } from './Header';
+import { CanvasImage } from './CanvasImage';
 import type { CanvasItem } from '@/types/canvas';
 
 interface CanvasContentProps {
@@ -27,29 +29,19 @@ export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd }: CanvasC
         );
       case 'header':
         return (
-          <div
+          <Header
             key={item.id}
-            className="w-full h-full flex items-center justify-center bg-transparent"
-          >
-            <h2 className="text-2xl font-bold text-white/80">
-              {item.metadata?.title || 'Header'}
-            </h2>
-          </div>
+            onUpdate={onUpdateItem}
+            onDelete={onDeleteItem}
+          />
         );
       case 'image':
         return (
-          <div
+          <CanvasImage
             key={item.id}
-            className="w-full h-full rounded-lg overflow-hidden bg-zinc-800"
-          >
-            {item.metadata?.url && (
-              <img
-                src={item.metadata.url}
-                alt={item.metadata?.alt || 'Image'}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
+            onUpdate={onUpdateItem}
+            onDelete={onDeleteItem}
+          />
         );
       default:
         return null;

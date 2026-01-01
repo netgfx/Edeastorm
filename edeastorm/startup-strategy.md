@@ -44,11 +44,10 @@
 
 ### High-Impact AI Features
 
-1. **Smart Idea Clustering** - Auto-group similar ideas using embeddings
+1. **Smart Idea Clustering** - Auto-group similar ideas using the notes content, the LLM model should be able to group notes together and create new notes as group labels (e.g: Problems, Ideas, Notes, Action Items), this is a manually invoked functionality.
 2. **Idea Enhancement** - Suggest improvements or variations on existing ideas
 3. **Meeting Summarization** - Generate action items and key insights from brainstorming sessions
-4. **Template Intelligence** - Recommend brainstorming frameworks based on session goals
-5. **Sentiment Analysis** - Track team engagement and idea momentum
+4. **Sentiment Analysis** - Track team engagement and idea momentum
 
 ### Technical Implementation
 

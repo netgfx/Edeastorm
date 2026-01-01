@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   Upload,
+  Sparkles,
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { useNodeStore } from "@/store/nodeStore";
@@ -29,6 +30,7 @@ interface ToolbarProps {
   boardShortId?: string;
   isCreator?: boolean;
   onImageUploadComplete?: () => void;
+  onOpenAIInsights?: () => void;
 }
 
 const tools: { id: ToolType; icon: React.ElementType; label: string }[] = [
@@ -48,6 +50,7 @@ export function Toolbar({
   boardShortId,
   isCreator,
   onImageUploadComplete,
+  onOpenAIInsights,
 }: ToolbarProps) {
   const { activeTool, setActiveTool, isSaving, theme, setTheme } =
     useEditorStore();
@@ -60,15 +63,18 @@ export function Toolbar({
     switch (toolId) {
       case "note":
         onAddNote?.();
-        setActiveTool("select");
+        // Add haptic feedback with animation
+        setTimeout(() => setActiveTool("select"), 300);
         break;
       case "image":
         onAddImage?.();
-        setActiveTool("select");
+        // Keep active briefly to show feedback
+        setTimeout(() => setActiveTool("select"), 300);
         break;
       case "header":
         onAddHeader?.();
-        setActiveTool("select");
+        // Add brief delay for visual feedback
+        setTimeout(() => setActiveTool("select"), 300);
         break;
     }
   };
@@ -81,10 +87,10 @@ export function Toolbar({
     <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[60] pointer-events-auto">
       <div
         className={cn(
-          "flex flex-col gap-2 backdrop-blur-xl border rounded-2xl p-2 shadow-2xl transition-colors duration-500",
+          "flex flex-col gap-2 backdrop-blur-xl border rounded-2xl p-2 shadow-2xl transition-all duration-500 ease-out",
           theme === "dark"
-            ? "bg-zinc-900/90 border-zinc-700/50"
-            : "bg-white/90 border-zinc-200"
+            ? "bg-zinc-900/90 border-zinc-700/50 shadow-zinc-950/50"
+            : "bg-white/90 border-zinc-200 shadow-zinc-400/20"
         )}
       >
         {tools.map((tool) => {
@@ -105,16 +111,50 @@ export function Toolbar({
               )}
               title={tool.label}
             >
-              <Icon className="w-5 h-5" />
+              <Icon 
+                className={cn(
+                  "w-5 h-5 transition-transform duration-200",
+                  isActive && "animate-bounce-subtle"
+                )} 
+              />
 
-              {/* Tooltip */}
-              <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              {/* Enhanced Tooltip */}
+              <div className="absolute left-full ml-3 px-3 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-xl border border-zinc-700 group-hover:translate-x-1">
                 {tool.label}
-                <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-zinc-800 rotate-45" />
+                <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-zinc-900 border-l border-b border-zinc-700 rotate-45" />
               </div>
             </button>
           );
         })}
+
+        <div
+          className={cn(
+            "w-full h-px my-1 transition-colors duration-500",
+            theme === "dark" ? "bg-zinc-700" : "bg-zinc-200"
+          )}
+        />
+
+        {/* AI Insights Button */}
+        {boardId && (
+          <button
+            onClick={onOpenAIInsights}
+            className={cn(
+              "p-3 rounded-xl transition-all duration-200 group relative",
+              "bg-gradient-to-br from-purple-500 to-pink-500 text-white",
+              "hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/25",
+              "hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105"
+            )}
+            title="AI Insights"
+          >
+            <Sparkles className="w-5 h-5" />
+
+            {/* Tooltip */}
+            <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              AI Insights
+              <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-zinc-800 rotate-45" />
+            </div>
+          </button>
+        )}
 
         <div
           className={cn(

@@ -178,6 +178,7 @@ export function ImageUploadModal({
   return (
     <>
       <button
+        data-image-upload-trigger
         onClick={() => setOpen(true)}
         className="relative p-3 rounded-xl transition-all duration-200 group text-zinc-400 hover:text-white hover:bg-zinc-800"
         title="Upload Reference Images"

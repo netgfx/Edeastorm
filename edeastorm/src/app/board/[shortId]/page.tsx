@@ -27,6 +27,7 @@ import { UserBar } from "@/components/canvas/UserBar";
 import { ProblemCard } from "@/components/canvas/ProblemCard";
 import { BoardImageGallery } from "@/components/canvas/BoardImageGallery";
 import { ImageUploadModal } from "@/components/canvas/ImageUploadModal";
+import { AIInsightsModal } from "@/components/canvas/AIInsightsModal";
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -121,6 +122,7 @@ export default function BoardPage() {
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [tempUsername, setTempUsername] = useState("");
   const [roomUserId, setRoomUserId] = useState<string | null>(null);
+  const [isAIInsightsOpen, setIsAIInsightsOpen] = useState(false);
 
   // Load board data
   useEffect(() => {
@@ -312,6 +314,149 @@ export default function BoardPage() {
     }
   }, [board, session?.user?.id, nodes.length]);
 
+  // Add new header
+  const handleAddHeader = useCallback(async () => {
+    if (!board || !session?.user?.id) return;
+
+    const center = findCenter(true);
+    const headerWidth = 400;
+    const headerHeight = 120;
+    let targetX = center.x - headerWidth / 2;
+    let targetY = center.y - headerHeight / 2;
+
+    // Avoid Problem Card overlap
+    const canvasCenterX = CANVAS_WIDTH / 2;
+    const canvasCenterY = CANVAS_HEIGHT / 2;
+    const cardHalfWidth = 200;
+    const cardHalfHeight = 100;
+
+    const isOverlappingCard =
+      targetX + headerWidth > canvasCenterX - cardHalfWidth &&
+      targetX < canvasCenterX + cardHalfWidth &&
+      targetY + headerHeight > canvasCenterY - cardHalfHeight &&
+      targetY < canvasCenterY + cardHalfHeight;
+
+    if (isOverlappingCard) {
+      targetY += 250; // Move downwards
+    }
+
+    const item = await createCanvasItem(board.id, {
+      item_type: "header",
+      x: targetX,
+      y: targetY,
+      z_index: nodes.length + 1,
+      metadata: {
+        title: "New Header",
+        textSize: "h2",
+        size: { width: headerWidth, height: headerHeight },
+      },
+      created_by: session.user.id,
+    });
+
+    if (item) {
+      toast.success("Header added! Double-click to edit.");
+    }
+  }, [board, session?.user?.id, nodes.length]);
+
+  // Add new image - create a placeholder image on canvas
+  const handleAddImage = useCallback(async () => {
+    if (!board || !session?.user?.id) return;
+
+    // Create file input to trigger upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Image must be under 10MB');
+        return;
+      }
+
+      try {
+        // Get image dimensions
+        const img = new window.Image();
+        const dimensions = await new Promise<{ width: number; height: number }>(
+          (resolve) => {
+            img.onload = () => {
+              resolve({ width: img.width, height: img.height });
+            };
+            img.src = URL.createObjectURL(file);
+          }
+        );
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('boardId', board.id);
+        formData.append('caption', '');
+        formData.append('displayOrder', boardImages.length.toString());
+        formData.append('width', dimensions.width.toString());
+        formData.append('height', dimensions.height.toString());
+
+        // Upload via API route
+        const response = await fetch('/api/board-images/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          toast.error(`Failed to upload image: ${result.error}`);
+          return;
+        }
+
+        // Construct public URL from storage path
+        const imageData = result.data;
+        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/board-images/${imageData.storage_path}`;
+
+        // Add to boardImages state immediately
+        setBoardImages((prev) => [...prev, imageData]);
+
+        // Calculate canvas position
+        const center = findCenter(true);
+        const imageWidth = Math.min(400, dimensions.width);
+        const imageHeight = (imageWidth / dimensions.width) * dimensions.height;
+        const targetX = center.x - imageWidth / 2;
+        const targetY = center.y - imageHeight / 2;
+
+        // Create canvas item with the uploaded image URL
+        const item = await createCanvasItem(board.id, {
+          item_type: 'image',
+          x: targetX,
+          y: targetY,
+          z_index: nodes.length + 1,
+          metadata: {
+            url: publicUrl,
+            alt: file.name,
+            size: { width: imageWidth, height: imageHeight },
+          },
+          created_by: session.user.id,
+        });
+
+        if (item) {
+          toast.success('Image added to canvas!');
+        }
+
+        // Cleanup
+        URL.revokeObjectURL(img.src);
+      } catch (error) {
+        console.error('Image upload error:', error);
+        toast.error('Failed to upload image');
+      }
+    };
+    input.click();
+  }, [board, session?.user?.id, nodes.length, boardImages.length]);
+
   // Update item
   const handleUpdateItem = useCallback(
     async (id: string, updates: Record<string, unknown>) => {
@@ -461,10 +606,13 @@ export default function BoardPage() {
       {/* Toolbar */}
       <Toolbar
         onAddNote={handleAddNote}
+        onAddHeader={handleAddHeader}
+        onAddImage={handleAddImage}
         onSave={handleSave}
         boardId={board?.id}
         boardShortId={shortId}
         isCreator={session?.user?.id === board?.created_by}
+        onOpenAIInsights={() => setIsAIInsightsOpen(true)}
         onImageUploadComplete={handleImageUploadComplete}
       />
 
@@ -569,6 +717,15 @@ export default function BoardPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Insights Modal */}
+      {board?.id && (
+        <AIInsightsModal
+          isOpen={isAIInsightsOpen}
+          onClose={() => setIsAIInsightsOpen(false)}
+          boardId={board.id}
+        />
+      )}
     </div>
   );
 }
