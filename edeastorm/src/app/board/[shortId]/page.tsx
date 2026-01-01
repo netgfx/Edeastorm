@@ -191,7 +191,7 @@ export default function BoardPage() {
     const presenceUsers: UserPresence[] = roomUsers.map((u) => ({
       id: u.id,
       username: u.username,
-      cursor: { x: u.cursor_x, y: u.cursor_y },
+      cursor: { x: u.cursor_x ?? 0, y: u.cursor_y ?? 0 },
       color: u.color,
       lastSeen: new Date(u.last_seen),
     }));
@@ -220,7 +220,7 @@ export default function BoardPage() {
         const presenceUsers: UserPresence[] = updatedUsers.map((u) => ({
           id: u.id,
           username: u.username,
-          cursor: { x: u.cursor_x, y: u.cursor_y },
+          cursor: { x: u.cursor_x ?? 0, y: u.cursor_y ?? 0 },
           color: u.color,
           lastSeen: new Date(u.last_seen),
         }));
