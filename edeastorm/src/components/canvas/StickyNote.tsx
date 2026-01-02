@@ -19,6 +19,7 @@ interface StickyNoteProps {
   htmlRef?: React.RefObject<HTMLDivElement | null>;
   onUpdate?: (id: string, updates: Partial<CanvasItem>) => void;
   onDelete?: (id: string) => void;
+  readOnly?: boolean;
 }
 
 export function StickyNote({
@@ -26,6 +27,7 @@ export function StickyNote({
   htmlRef,
   onUpdate,
   onDelete,
+  readOnly,
 }: StickyNoteProps) {
   const inputRef = useRef<HTMLElement>(null);
   const contentRef = useRef("");
@@ -156,16 +158,17 @@ export function StickyNote({
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (readOnly) return;
       if (data?.id && onDelete) {
         onDelete(data.id);
       }
     },
-    [data?.id, onDelete]
+    [data?.id, onDelete, readOnly]
   );
 
   // Focus when editing
   useEffect(() => {
-    if (isEditing && inputRef.current) {
+    if (isEditing && inputRef.current && !readOnly) {
       inputRef.current.focus();
       // Select all text
       const selection = window.getSelection();
@@ -174,7 +177,7 @@ export function StickyNote({
       selection?.removeAllRanges();
       selection?.addRange(range);
     }
-  }, [isEditing]);
+  }, [isEditing, readOnly]);
 
   // Sync content from data
   const displayContent = useMemo(() => {
@@ -191,10 +194,10 @@ export function StickyNote({
       className="relative w-full h-full group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
+      onClick={!readOnly ? handleClick : undefined}
     >
       {/* Selection indicator */}
-      {isSelected && (
+      {isSelected && !readOnly && (
         <div
           className="absolute -inset-1 rounded-lg border-2 border-violet-500 pointer-events-none"
           style={{ boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)" }}
@@ -223,7 +226,7 @@ export function StickyNote({
         {/* Content wrapper */}
         <div
           className="relative w-full h-full flex items-center justify-center p-4"
-          onDoubleClick={handleDoubleClick}
+          onDoubleClick={!readOnly ? handleDoubleClick : undefined}
         >
           <ContentEditable
             innerRef={inputRef as React.RefObject<HTMLElement>}
@@ -231,14 +234,14 @@ export function StickyNote({
             onChange={handleChange}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            disabled={!isEditing}
+            disabled={!isEditing || readOnly}
             className="w-full text-center text-zinc-900 leading-snug outline-none"
             style={{
               fontFamily: "Inter, system-ui, -apple-system, sans-serif",
               fontSize: data.metadata?.textSize
                 ? `${data.metadata.textSize}px`
                 : "16px",
-              cursor: isEditing ? "text" : "grab",
+              cursor: isEditing ? "text" : readOnly ? "default" : "grab",
               pointerEvents: isEditing ? "auto" : "none",
               wordBreak: "break-word",
               overflowWrap: "break-word",
@@ -262,7 +265,7 @@ export function StickyNote({
           >
             <Palette className="w-4 h-4 text-zinc-400 group-hover/color:text-violet-400" />
           </button>
-          
+
           {/* Color picker dropdown */}
           {showColorPicker && (
             <div className="absolute top-10 left-0 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-2 flex gap-1.5">
@@ -276,7 +279,7 @@ export function StickyNote({
                   className="w-8 h-8 rounded-md border-2 transition-all hover:scale-110"
                   style={{
                     backgroundColor: colorValue,
-                    borderColor: color === colorKey ? '#8b5cf6' : 'transparent',
+                    borderColor: color === colorKey ? "#8b5cf6" : "transparent",
                   }}
                   title={colorKey}
                 />
@@ -287,17 +290,17 @@ export function StickyNote({
       )}
 
       {/* Delete button (Outside overflow-hidden) */}
-      {isSelected && (
+      {isSelected && !readOnly && (
         <button
           onClick={handleDelete}
-          className="absolute -top-3 -right-3 w-8 h-8 bg-zinc-950 text-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-200 border border-zinc-800 hover:bg-zinc-800 hover:scale-110 z-50 group/delete"
+          className="absolute -top-3 -right-3 w-8 h-8 bg-zinc-950 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 z-50 group/delete"
         >
-          <Trash2 className="w-4 h-4 text-zinc-400 group-hover/delete:text-red-400" />
+          <Trash2 className="w-4 h-4 text-red-400 group-hover/delete:text-red-300" />
         </button>
       )}
 
       {/* Resize Handle */}
-      {isSelected && (
+      {isSelected && !readOnly && (
         <ResizeHandle nodeId={data.id} onResizeEnd={handleResizeEnd} />
       )}
     </div>

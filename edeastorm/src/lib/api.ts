@@ -666,3 +666,155 @@ export async function reorderBoardImages(
 
   return true;
 }
+
+// ============================================
+// TEAM MANAGEMENT OPERATIONS
+// ============================================
+
+export async function getOrganizationMembers(orgId: string) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select(`
+      *,
+      profiles:user_id (
+        id,
+        full_name,
+        email,
+        avatar_url
+      )
+    `)
+    .eq("organization_id", orgId);
+
+  if (error) {
+    console.error("Error fetching members:", error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function inviteMember(
+  orgId: string,
+  email: string,
+  role: "admin" | "editor" | "viewer" = "viewer"
+) {
+  // Check if user already exists in members
+  // This requires a join or separate check, but for now let's just try to insert invitation
+  // Ideally we check if profile exists and add directly, but for "Invite via email" flow:
+  // 1. Check if profile exists with this email
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .single();
+
+  if (profiles) {
+    // User exists, add to members directly
+    const { error } = await supabase.from("organization_members").insert({
+      organization_id: orgId,
+      user_id: profiles.id,
+      role,
+    });
+    
+    if (error) {
+      // Check for duplicate
+      if (error.code === '23505') { // unique_violation
+         return { success: false, error: "User is already a member" };
+      }
+      return { success: false, error: error.message };
+    }
+    return { success: true, message: "User added to team" };
+  } else {
+    // User does not exist, create invitation
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const { error } = await supabase.from("organization_invitations").insert({
+      organization_id: orgId,
+      email,
+      role,
+      token,
+    });
+
+    if (error) {
+       if (error.code === '23505') {
+         return { success: false, error: "Invitation already sent" };
+       }
+       return { success: false, error: error.message };
+    }
+    
+    // Here we would send the email
+    console.log(`[MOCK EMAIL] Invite sent to ${email} with token ${token}`);
+    
+    return { success: true, message: "Invitation sent" };
+  }
+}
+
+export async function removeMember(orgId: string, userId: string) {
+  const { error } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", orgId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error removing member:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateMemberRole(
+  orgId: string,
+  userId: string,
+  role: "admin" | "editor" | "viewer"
+) {
+  const { error } = await supabase
+    .from("organization_members")
+    .update({ role })
+    .eq("organization_id", orgId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error updating member role:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function getUserOrganizations(userId: string) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select(`
+      role,
+      organization:organization_id (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("Error fetching user organizations:", JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  return (data || []).map(d => ({
+    // @ts-ignore
+    ...d.organization,
+    role: d.role
+  }));
+}
+
+export async function getOrganizationBoards(orgId: string) {
+  const { data, error } = await supabase
+    .from("boards")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching org boards:", error);
+    return [];
+  }
+  return data;
+}

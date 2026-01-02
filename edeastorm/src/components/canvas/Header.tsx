@@ -16,17 +16,30 @@ interface HeaderProps {
   htmlRef?: React.RefObject<HTMLDivElement | null>;
   onUpdate?: (id: string, updates: Partial<CanvasItem>) => void;
   onDelete?: (id: string) => void;
+  readOnly?: boolean;
 }
 
 type HeaderSize = "h1" | "h2" | "h3";
 
 const HEADER_SIZES = {
-  h1: { fontSize: "text-5xl", fontWeight: "font-black", lineHeight: "leading-tight" },
-  h2: { fontSize: "text-4xl", fontWeight: "font-bold", lineHeight: "leading-snug" },
-  h3: { fontSize: "text-3xl", fontWeight: "font-semibold", lineHeight: "leading-normal" },
+  h1: {
+    fontSize: "text-5xl",
+    fontWeight: "font-black",
+    lineHeight: "leading-tight",
+  },
+  h2: {
+    fontSize: "text-4xl",
+    fontWeight: "font-bold",
+    lineHeight: "leading-snug",
+  },
+  h3: {
+    fontSize: "text-3xl",
+    fontWeight: "font-semibold",
+    lineHeight: "leading-normal",
+  },
 };
 
-export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
+export function Header({ data, htmlRef, onUpdate, onDelete, readOnly }: HeaderProps) {
   const inputRef = useRef<HTMLElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
@@ -46,7 +59,10 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
   // Get header size - handle both string and number types
   const getHeaderSize = (): HeaderSize => {
     const size = data?.metadata?.textSize;
-    if (typeof size === "string" && (size === "h1" || size === "h2" || size === "h3")) {
+    if (
+      typeof size === "string" &&
+      (size === "h1" || size === "h2" || size === "h3")
+    ) {
       return size as HeaderSize;
     }
     return "h2"; // default
@@ -56,10 +72,13 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
   const sizeStyles = HEADER_SIZES[headerSize];
 
   // Sanitize config - memoized
-  const sanitizeConfig = useMemo(() => ({
-    allowedTags: ["br", "b", "i", "u", "strong", "em"],
-    allowedAttributes: {},
-  }), []);
+  const sanitizeConfig = useMemo(
+    () => ({
+      allowedTags: ["br", "b", "i", "u", "strong", "em"],
+      allowedAttributes: {},
+    }),
+    []
+  );
 
   // Content state - initialize with data
   const getInitialContent = () => {
@@ -141,19 +160,20 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (readOnly) return;
       if (data?.id && onDelete) {
         onDelete(data.id);
       }
     },
-    [data, onDelete]
+    [data, onDelete, readOnly]
   );
 
   // Focus input when entering edit mode
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && !readOnly) {
       inputRef.current?.focus();
     }
-  }, [isEditing]);
+  }, [isEditing, readOnly]);
 
   return (
     <div
@@ -164,14 +184,14 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
         setIsHovered(false);
         setShowSizePicker(false);
       }}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
+      onClick={!readOnly ? handleClick : undefined}
+      onDoubleClick={!readOnly ? handleDoubleClick : undefined}
       style={{
-        cursor: isEditing ? "text" : "pointer",
+        cursor: isEditing ? "text" : readOnly ? "default" : "pointer",
       }}
     >
       {/* Selection Border */}
-      {isSelected && !isDragging && (
+      {isSelected && !isDragging && !readOnly && (
         <div className="absolute inset-0 rounded-lg border-3 border-violet-500 pointer-events-none animate-pulse-subtle" />
       )}
 
@@ -179,11 +199,13 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
       <ContentEditable
         innerRef={inputRef as any}
         html={content}
-        disabled={!isEditing}
+        disabled={!isEditing || readOnly}
         onChange={handleChange}
         onBlur={handleBlur}
         className={`
-          ${sizeStyles.fontSize} ${sizeStyles.fontWeight} ${sizeStyles.lineHeight}
+          ${sizeStyles.fontSize} ${sizeStyles.fontWeight} ${
+          sizeStyles.lineHeight
+        }
           text-center outline-none transition-all duration-200 px-4 py-2
           ${
             isEditing
@@ -200,24 +222,23 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
         }}
       />
 
-      {/* Hover Controls */}
-      {(isHovered || isSelected) && !isEditing && !isDragging && (
-        <div className="absolute top-2 right-2 flex gap-1 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-1 shadow-lg animate-fade-in">
-          {/* Size Picker */}
+      {/* Size Picker */}
+      {isSelected && !isEditing && !isDragging && !readOnly && (
+        <div className="absolute -top-3 -left-3 z-50">
           <div className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setShowSizePicker(!showSizePicker);
               }}
-              className="p-2 hover:bg-white/10 rounded transition-colors duration-200"
+              className="w-8 h-8 bg-zinc-950 text-white rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 group/size"
               title="Change size"
             >
-              <Type className="w-4 h-4 text-white" />
+              <Type className="w-4 h-4 text-zinc-400 group-hover/size:text-violet-400" />
             </button>
 
             {showSizePicker && (
-              <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 animate-slide-down">
+              <div className="absolute top-10 left-0 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-50 animate-slide-down min-w-[100px]">
                 {(Object.keys(HEADER_SIZES) as HeaderSize[]).map((size) => (
                   <button
                     key={size}
@@ -226,11 +247,20 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
                       handleSizeChange(size);
                     }}
                     className={`
-                      w-full px-4 py-2 text-left hover:bg-white/10 transition-colors duration-200
-                      ${headerSize === size ? "bg-violet-600/30 text-violet-300" : "text-white"}
+                      w-full px-4 py-2 text-left hover:bg-zinc-800 transition-colors duration-200
+                      ${
+                        headerSize === size
+                          ? "bg-violet-600/20 text-violet-300"
+                          : "text-zinc-300"
+                      }
                     `}
                   >
-                    <span className={HEADER_SIZES[size].fontSize.replace("text-", "text-")}>
+                    <span
+                      className={HEADER_SIZES[size].fontSize.replace(
+                        "text-",
+                        "text-"
+                      )}
+                    >
                       {size.toUpperCase()}
                     </span>
                   </button>
@@ -238,16 +268,18 @@ export function Header({ data, htmlRef, onUpdate, onDelete }: HeaderProps) {
               </div>
             )}
           </div>
-
-          {/* Delete Button */}
-          <button
-            onClick={handleDelete}
-            className="p-2 hover:bg-red-500/20 rounded transition-colors duration-200 group/delete"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4 text-red-400 group-hover/delete:text-red-300" />
-          </button>
         </div>
+      )}
+
+      {/* Delete Button */}
+      {isSelected && !isEditing && !isDragging && !readOnly && (
+        <button
+          onClick={handleDelete}
+          className="absolute -top-3 -right-3 w-8 h-8 bg-zinc-950 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 z-50 group/delete"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4 text-red-400 group-hover/delete:text-red-300" />
+        </button>
       )}
     </div>
   );

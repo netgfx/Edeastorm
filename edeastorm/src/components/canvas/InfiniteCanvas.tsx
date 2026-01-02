@@ -1,15 +1,22 @@
-// @ts-nocheck
-'use client';
+/** @format */
 
-import { useCallback, useRef } from 'react';
-import gsap from 'gsap';
-import { Draggable } from 'gsap/Draggable';
-import { useGSAP } from '@gsap/react';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ZOOM, MAX_ZOOM } from '@/lib/constants';
-import { useEditorStore } from '@/store/editorStore';
-import { useNodeStore } from '@/store/nodeStore';
-import { findCenter } from '@/lib/utils';
-import { ZoomControls } from './ZoomControls';
+// @ts-nocheck
+"use client";
+
+import { useCallback, useRef } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import { useGSAP } from "@gsap/react";
+import {
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  MIN_ZOOM,
+  MAX_ZOOM,
+} from "@/lib/constants";
+import { useEditorStore } from "@/store/editorStore";
+import { useNodeStore } from "@/store/nodeStore";
+import { findCenter } from "@/lib/utils";
+import { ZoomControls } from "./ZoomControls";
 
 gsap.registerPlugin(Draggable);
 
@@ -18,29 +25,34 @@ interface InfiniteCanvasProps {
   outerChildren?: React.ReactNode;
 }
 
-export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps) {
+export function InfiniteCanvas({
+  children,
+  outerChildren,
+}: InfiniteCanvasProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const mainAreaRef = useRef<HTMLDivElement>(null);
   const draggableRef = useRef<HTMLDivElement>(null);
 
-
-  const { canvasScale, setCanvasScale, setCursorPosition, activeTool, theme } = useEditorStore();
+  const canvasScale = useEditorStore((state) => state.canvasScale);
+  const setCanvasScale = useEditorStore((state) => state.setCanvasScale);
+  const setCursorPosition = useEditorStore((state) => state.setCursorPosition);
+  const activeTool = useEditorStore((state) => state.activeTool);
+  const theme = useEditorStore((state) => state.theme);
   const { setSelectedNode, setEditableNode } = useNodeStore();
   const { contextSafe } = useGSAP({ scope: wrapperRef });
 
   // Initialize draggable
   const initializeDrag = useCallback(() => {
-    
     if (Draggable.get(mainAreaRef.current)) {
-      console.log("draggable kill")
+      console.log("draggable kill");
       Draggable.get(mainAreaRef.current).kill();
     }
-    
+
     Draggable.create(mainAreaRef.current, {
-      type: 'x,y',
-      bounds: '#wrapperContainer',
+      type: "x,y",
+      bounds: "#wrapperContainer",
       dragClickables: false,
-      trigger: '#fake-area',
+      trigger: "#fake-area",
       autoScroll: 1,
       allowContextMenu: true,
       allowEventDefault: true,
@@ -50,36 +62,34 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
         setEditableNode(null);
       },
       onDragStart: () => {
-        
-        const wrapper = document.getElementById('wrapperContainer');
-        wrapper?.classList.add('cursor-grabbing');
-        wrapper?.classList.remove('cursor-grab');
+        const wrapper = document.getElementById("wrapperContainer");
+        wrapper?.classList.add("cursor-grabbing");
+        wrapper?.classList.remove("cursor-grab");
       },
       onDragEnd: () => {
-        
-        const wrapper = document.getElementById('wrapperContainer');
-        wrapper?.classList.add('cursor-grab');
-        wrapper?.classList.remove('cursor-grabbing');
-      }
+        const wrapper = document.getElementById("wrapperContainer");
+        wrapper?.classList.add("cursor-grab");
+        wrapper?.classList.remove("cursor-grabbing");
+      },
     });
   }, []);
 
   // Recenter canvas
   const recenter = useCallback(() => {
-    gsap.to('#draggable-area', {
+    gsap.to("#draggable-area", {
       scale: 1,
       duration: 0.2,
-      ease: 'power2.out',
-      transformOrigin: 'center center',
+      ease: "power2.out",
+      transformOrigin: "center center",
     });
 
     const { x, y } = findCenter();
 
-    gsap.to('#draggable-area', {
+    gsap.to("#draggable-area", {
       x: -x,
       y: -y,
       duration: 0.2,
-      ease: 'power2.out',
+      ease: "power2.out",
     });
 
     setCanvasScale(1.0);
@@ -87,11 +97,11 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
 
   // Zoom handler
   const onZoom = contextSafe((scale: number) => {
-    gsap.to('#draggable-area', {
+    gsap.to("#draggable-area", {
       scale: Number(scale.toFixed(2)),
       duration: 0.1,
-      ease: 'power1.out',
-      transformOrigin: 'center center',
+      ease: "power1.out",
+      transformOrigin: "center center",
     });
   });
 
@@ -118,8 +128,8 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
       }
     };
 
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
   }, [handleZoom]);
 
   // Initialize canvas
@@ -132,8 +142,8 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
 
     return () => {
       timeout.kill();
-      if (Draggable.get('.draggable-area')) {
-        Draggable.get('.draggable-area').kill();
+      if (Draggable.get(".draggable-area")) {
+        Draggable.get(".draggable-area").kill();
       }
     };
   }, [initializeDrag, recenter]);
@@ -149,9 +159,11 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
   };
 
   return (
-    <div className={`relative w-full h-full overflow-hidden z-0 transition-colors duration-700 ${
-      theme === 'dark' ? 'bg-[#010101]' : 'bg-[#f5f5f7]'
-    }`}>
+    <div
+      className={`relative w-full h-full overflow-hidden z-0 transition-colors duration-700 ${
+        theme === "dark" ? "bg-[#010101]" : "bg-[#f5f5f7]"
+      }`}
+    >
       {/* Canvas wrapper - The interaction layer */}
       <div
         ref={wrapperRef}
@@ -166,8 +178,8 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
           style={{
             width: CANVAS_WIDTH,
             height: CANVAS_HEIGHT,
-            background: 'transparent',
-            pointerEvents: 'auto',
+            background: "transparent",
+            pointerEvents: "auto",
           }}
         />
 
@@ -179,7 +191,7 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
           style={{
             width: CANVAS_WIDTH,
             height: CANVAS_HEIGHT,
-            transformOrigin: 'center center',
+            transformOrigin: "center center",
           }}
         >
           {/* Background grid - Internal to draggable area so it pans */}
@@ -189,13 +201,14 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
             style={{
               width: CANVAS_WIDTH,
               height: CANVAS_HEIGHT,
-              backgroundImage: theme === 'dark' 
-                ? `linear-gradient(rgba(255, 215, 0, 0.05) 1px, transparent 1px),
+              backgroundImage:
+                theme === "dark"
+                  ? `linear-gradient(rgba(255, 215, 0, 0.05) 1px, transparent 1px),
                    linear-gradient(90deg, rgba(255, 215, 0, 0.05) 1px, transparent 1px)`
-                : `linear-gradient(rgba(109, 40, 217, 0.12) 1px, transparent 1px),
+                  : `linear-gradient(rgba(109, 40, 217, 0.12) 1px, transparent 1px),
                    linear-gradient(90deg, rgba(109, 40, 217, 0.12) 1px, transparent 1px)`,
-              backgroundSize: '50px 50px, 50px 50px',
-              backgroundPosition: 'center center',
+              backgroundSize: "50px 50px, 50px 50px",
+              backgroundPosition: "center center",
             }}
           />
           {children}
@@ -206,7 +219,7 @@ export function InfiniteCanvas({ children, outerChildren }: InfiniteCanvasProps)
       <div className="absolute inset-0 pointer-events-none z-40">
         <div className="relative w-full h-full">
           {outerChildren}
-          
+
           {/* Zoom controls inside the UI layer */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto">
             <ZoomControls

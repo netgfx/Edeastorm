@@ -23,6 +23,7 @@ import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasContent } from "@/components/canvas/CanvasContent";
 import { Toolbar } from "@/components/canvas/Toolbar";
 import { CursorLayer } from "@/components/canvas/CursorLayer";
+import { CursorBroadcaster } from "@/components/canvas/CursorBroadcaster";
 import { UserBar } from "@/components/canvas/UserBar";
 import { ProblemCard } from "@/components/canvas/ProblemCard";
 import { BoardImageGallery } from "@/components/canvas/BoardImageGallery";
@@ -52,6 +53,7 @@ import {
   getRoomUsers,
   createSnapshot,
   getBoardImages,
+  getOrganizationMembers,
 } from "@/lib/api";
 import { findCenter, throttle } from "@/lib/utils";
 import {
@@ -74,7 +76,6 @@ export default function BoardPage() {
 
   // Stores
   const {
-    nodes,
     insertNodes,
     addNode,
     removeNode,
@@ -91,14 +92,10 @@ export default function BoardPage() {
     setUsername,
     username,
   } = useGlobalStore();
-  const {
-    setLoading,
-    isLoading,
-    setCursorPosition,
-    cursorPosition,
-    theme,
-    setTheme,
-  } = useEditorStore();
+  const setLoading = useEditorStore((state) => state.setLoading);
+  const isLoading = useEditorStore((state) => state.isLoading);
+  const theme = useEditorStore((state) => state.theme);
+  const setTheme = useEditorStore((state) => state.setTheme);
 
   // Handle theme persistence
   useEffect(() => {
@@ -123,6 +120,7 @@ export default function BoardPage() {
   const [tempUsername, setTempUsername] = useState("");
   const [roomUserId, setRoomUserId] = useState<string | null>(null);
   const [isAIInsightsOpen, setIsAIInsightsOpen] = useState(false);
+  const [userRole, setUserRole] = useState<"admin" | "editor" | "viewer">("editor"); // Default to editor for now
 
   // Load board data
   useEffect(() => {
@@ -137,6 +135,28 @@ export default function BoardPage() {
         }
         setBoard(boardData);
         setCurrentRoom(boardData.id);
+
+        // Check permissions
+        if (session?.user?.id && boardData.organization_id) {
+          const members = await getOrganizationMembers(boardData.organization_id);
+          const member = members.find((m: any) => m.user_id === session.user.id);
+          if (member) {
+            // @ts-ignore
+            setUserRole(member.role);
+          } else if (boardData.created_by === session.user.id) {
+             setUserRole("admin");
+          } else {
+             // If public board, maybe viewer?
+             // For now assume editor if not in org but has access (e.g. public)
+             // But if it's an org board and user is not member, they shouldn't see it unless public
+             if (boardData.is_public) {
+                setUserRole("editor"); // Or viewer depending on public settings
+             } else {
+                // Should be handled by RLS, but UI wise:
+                setUserRole("viewer");
+             }
+          }
+        }
 
         // Load canvas items
         const items = await getCanvasItems(boardData.id);
@@ -250,23 +270,6 @@ export default function BoardPage() {
     }
   };
 
-  // Broadcast cursor position
-  const broadcastCursor = useCallback(
-    throttle((x: number, y: number) => {
-      if (roomUserId) {
-        worker.broadcastCursor(roomUserId, { x, y });
-      }
-    }, 50),
-    [roomUserId, worker]
-  );
-
-  // Track mouse movement for cursor broadcast
-  useEffect(() => {
-    if (cursorPosition.x > 0 && cursorPosition.y > 0) {
-      broadcastCursor(cursorPosition.x, cursorPosition.y);
-    }
-  }, [cursorPosition, broadcastCursor]);
-
   // Add new note
   const handleAddNote = useCallback(async () => {
     if (!board || !session?.user?.id) return;
@@ -298,7 +301,7 @@ export default function BoardPage() {
       item_type: "sticky_note",
       x: targetX,
       y: targetY,
-      z_index: nodes.length + 1,
+      z_index: useNodeStore.getState().nodes.length + 1,
       metadata: {
         title: "",
         description: "",
@@ -310,9 +313,10 @@ export default function BoardPage() {
     });
 
     if (item) {
+      addNode(item);
       toast.success("Note added!");
     }
-  }, [board, session?.user?.id, nodes.length]);
+  }, [board, session?.user?.id, addNode]);
 
   // Add new header
   const handleAddHeader = useCallback(async () => {
@@ -344,7 +348,7 @@ export default function BoardPage() {
       item_type: "header",
       x: targetX,
       y: targetY,
-      z_index: nodes.length + 1,
+      z_index: useNodeStore.getState().nodes.length + 1,
       metadata: {
         title: "New Header",
         textSize: "h2",
@@ -354,30 +358,31 @@ export default function BoardPage() {
     });
 
     if (item) {
+      addNode(item);
       toast.success("Header added! Double-click to edit.");
     }
-  }, [board, session?.user?.id, nodes.length]);
+  }, [board, session?.user?.id, addNode]);
 
   // Add new image - create a placeholder image on canvas
   const handleAddImage = useCallback(async () => {
     if (!board || !session?.user?.id) return;
 
     // Create file input to trigger upload
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
     input.onchange = async (e: Event) => {
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0];
       if (!file) return;
 
       // Validate file
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('Image must be under 10MB');
+        toast.error("Image must be under 10MB");
         return;
       }
 
@@ -395,16 +400,16 @@ export default function BoardPage() {
 
         // Create form data
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('boardId', board.id);
-        formData.append('caption', '');
-        formData.append('displayOrder', boardImages.length.toString());
-        formData.append('width', dimensions.width.toString());
-        formData.append('height', dimensions.height.toString());
+        formData.append("file", file);
+        formData.append("boardId", board.id);
+        formData.append("caption", "");
+        formData.append("displayOrder", boardImages.length.toString());
+        formData.append("width", dimensions.width.toString());
+        formData.append("height", dimensions.height.toString());
 
         // Upload via API route
-        const response = await fetch('/api/board-images/upload', {
-          method: 'POST',
+        const response = await fetch("/api/board-images/upload", {
+          method: "POST",
           body: formData,
         });
 
@@ -431,10 +436,10 @@ export default function BoardPage() {
 
         // Create canvas item with the uploaded image URL
         const item = await createCanvasItem(board.id, {
-          item_type: 'image',
+          item_type: "image",
           x: targetX,
           y: targetY,
-          z_index: nodes.length + 1,
+          z_index: useNodeStore.getState().nodes.length + 1,
           metadata: {
             url: publicUrl,
             alt: file.name,
@@ -444,18 +449,19 @@ export default function BoardPage() {
         });
 
         if (item) {
-          toast.success('Image added to canvas!');
+          addNode(item);
+          toast.success("Image added to canvas!");
         }
 
         // Cleanup
         URL.revokeObjectURL(img.src);
       } catch (error) {
-        console.error('Image upload error:', error);
-        toast.error('Failed to upload image');
+        console.error("Image upload error:", error);
+        toast.error("Failed to upload image");
       }
     };
     input.click();
-  }, [board, session?.user?.id, nodes.length, boardImages.length]);
+  }, [board, session?.user?.id, boardImages.length, addNode]);
 
   // Update item
   const handleUpdateItem = useCallback(
@@ -526,6 +532,9 @@ export default function BoardPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Disable shortcuts for viewers
+      if (userRole === 'viewer') return;
+
       // Delete selected node
       if (e.key === "Delete" || e.key === "Backspace") {
         const selected = useNodeStore.getState().selectedNode;
@@ -543,7 +552,7 @@ export default function BoardPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleDeleteItem, setSelectedNode, setEditableNode]);
+  }, [handleDeleteItem, setSelectedNode, setEditableNode, userRole]);
 
   if (isLoading) {
     return (
@@ -585,6 +594,11 @@ export default function BoardPage() {
                 </div>
               )}
             </div>
+            {userRole === 'viewer' && (
+              <span className="ml-2 px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-xs font-medium border border-zinc-700">
+                View Only
+              </span>
+            )}
           </div>
         </div>
 
@@ -604,17 +618,19 @@ export default function BoardPage() {
       </header>
 
       {/* Toolbar */}
-      <Toolbar
-        onAddNote={handleAddNote}
-        onAddHeader={handleAddHeader}
-        onAddImage={handleAddImage}
-        onSave={handleSave}
-        boardId={board?.id}
-        boardShortId={shortId}
-        isCreator={session?.user?.id === board?.created_by}
-        onOpenAIInsights={() => setIsAIInsightsOpen(true)}
-        onImageUploadComplete={handleImageUploadComplete}
-      />
+      {userRole !== 'viewer' && (
+        <Toolbar
+          onAddNote={handleAddNote}
+          onAddHeader={handleAddHeader}
+          onAddImage={handleAddImage}
+          onSave={handleSave}
+          boardId={board?.id}
+          boardShortId={shortId}
+          isCreator={session?.user?.id === board?.created_by}
+          onOpenAIInsights={() => setIsAIInsightsOpen(true)}
+          onImageUploadComplete={handleImageUploadComplete}
+        />
+      )}
 
       {/* Canvas */}
       <div className="pt-14 h-full relative">
@@ -625,6 +641,7 @@ export default function BoardPage() {
           outerChildren={
             <>
               <CursorLayer currentPresenceId={roomUserId} />
+              <CursorBroadcaster worker={worker} roomUserId={roomUserId} />
             </>
           }
         >
@@ -635,9 +652,10 @@ export default function BoardPage() {
             />
           )}
           <CanvasContent
-            onUpdateItem={handleUpdateItem}
-            onDeleteItem={handleDeleteItem}
-            onDragEnd={handleDragEnd}
+            onUpdateItem={userRole !== 'viewer' ? handleUpdateItem : async () => {}}
+            onDeleteItem={userRole !== 'viewer' ? handleDeleteItem : async () => {}}
+            onDragEnd={userRole !== 'viewer' ? handleDragEnd : async () => {}}
+            readOnly={userRole === 'viewer'}
           />
         </InfiniteCanvas>
       </div>

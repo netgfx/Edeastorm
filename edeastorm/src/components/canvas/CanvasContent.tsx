@@ -12,9 +12,10 @@ interface CanvasContentProps {
   onUpdateItem?: (id: string, updates: Record<string, unknown>) => void;
   onDeleteItem?: (id: string) => void;
   onDragEnd?: (id: string, x: number, y: number) => void;
+  readOnly?: boolean;
 }
 
-export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd }: CanvasContentProps) {
+export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd, readOnly }: CanvasContentProps) {
   const nodes = useNodeStore((state) => state.nodes);
 
   const renderItem = (item: CanvasItem) => {
@@ -25,6 +26,7 @@ export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd }: CanvasC
             key={item.id}
             onUpdate={onUpdateItem}
             onDelete={onDeleteItem}
+            readOnly={readOnly}
           />
         );
       case 'header':
@@ -33,6 +35,7 @@ export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd }: CanvasC
             key={item.id}
             onUpdate={onUpdateItem}
             onDelete={onDeleteItem}
+            readOnly={readOnly}
           />
         );
       case 'image':
@@ -41,6 +44,7 @@ export function CanvasContent({ onUpdateItem, onDeleteItem, onDragEnd }: CanvasC
             key={item.id}
             onUpdate={onUpdateItem}
             onDelete={onDeleteItem}
+            readOnly={readOnly}
           />
         );
       default:

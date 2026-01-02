@@ -13,17 +13,14 @@ interface CanvasImageProps {
   htmlRef?: React.RefObject<HTMLDivElement | null>;
   onUpdate?: (id: string, updates: Partial<CanvasItem>) => void;
   onDelete?: (id: string) => void;
+  readOnly?: boolean;
 }
 
-export function CanvasImage({ data, htmlRef, onDelete }: CanvasImageProps) {
+export function CanvasImage({ data, htmlRef, onDelete, readOnly }: CanvasImageProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const {
-    selectedNode,
-    setSelectedNode,
-    isDraggingNode,
-  } = useNodeStore();
+  const { selectedNode, setSelectedNode, isDraggingNode } = useNodeStore();
 
   const isSelected = selectedNode?.id === data?.id;
   const isDragging = isDraggingNode === data?.id;
@@ -35,31 +32,24 @@ export function CanvasImage({ data, htmlRef, onDelete }: CanvasImageProps) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (data?.id) {
+      if (data?.id && !readOnly) {
         setSelectedNode(data);
       }
     },
-    [data, setSelectedNode]
+    [data, setSelectedNode, readOnly]
   );
 
   // Handle delete
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (readOnly) return;
       if (data?.id && onDelete) {
         onDelete(data.id);
       }
     },
-    [data, onDelete]
+    [data, onDelete, readOnly]
   );
-
-  if (!imageUrl) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-zinc-800/50 rounded-lg border border-zinc-700">
-        <p className="text-zinc-400 text-sm">No image</p>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -74,10 +64,10 @@ export function CanvasImage({ data, htmlRef, onDelete }: CanvasImageProps) {
     >
       {/* Selection Border */}
       {isSelected && !isDragging && (
-        <div className="absolute inset-0 rounded-lg border-3 border-violet-500 pointer-events-none animate-pulse-subtle" />
+        <div className="absolute inset-0 rounded-lg border-3 border-violet-500 pointer-events-none animate-pulse-subtle z-10" />
       )}
 
-      {/* Image */}
+      {/* Image or Placeholder */}
       <div
         className={`
           relative w-full h-full rounded-lg overflow-hidden bg-zinc-800/50 border border-zinc-700/50
@@ -85,7 +75,7 @@ export function CanvasImage({ data, htmlRef, onDelete }: CanvasImageProps) {
           ${isDragging ? "opacity-70" : "opacity-100"}
         `}
       >
-        {!imageError ? (
+        {imageUrl && !imageError ? (
           <Image
             src={imageUrl}
             alt={imageAlt}
@@ -95,24 +85,23 @@ export function CanvasImage({ data, htmlRef, onDelete }: CanvasImageProps) {
             draggable={false}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-zinc-400 text-sm">Failed to load image</p>
+          <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
+            <p className="text-zinc-400 text-sm">
+              {imageError ? "Failed to load image" : "No image"}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Hover Controls */}
-      {(isHovered || isSelected) && !isDragging && (
-        <div className="absolute top-2 right-2 flex gap-1 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-1 shadow-lg animate-fade-in">
-          {/* Delete Button */}
-          <button
-            onClick={handleDelete}
-            className="p-2 hover:bg-red-500/20 rounded transition-colors duration-200 group/delete"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4 text-red-400 group-hover/delete:text-red-300" />
-          </button>
-        </div>
+      {/* Delete Button */}
+      {isSelected && (
+        <button
+          onClick={handleDelete}
+          className="absolute -top-3 -right-3 w-8 h-8 bg-zinc-950 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 z-50 group/delete"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4 text-red-400 group-hover/delete:text-red-300" />
+        </button>
       )}
     </div>
   );
