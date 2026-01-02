@@ -78,6 +78,7 @@ export default function BoardPage() {
   const {
     insertNodes,
     addNode,
+    updateNode,
     removeNode,
     setSelectedNode,
     setEditableNode,
@@ -120,7 +121,9 @@ export default function BoardPage() {
   const [tempUsername, setTempUsername] = useState("");
   const [roomUserId, setRoomUserId] = useState<string | null>(null);
   const [isAIInsightsOpen, setIsAIInsightsOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"admin" | "editor" | "viewer">("editor"); // Default to editor for now
+  const [userRole, setUserRole] = useState<"admin" | "editor" | "viewer">(
+    "editor"
+  ); // Default to editor for now
 
   // Load board data
   useEffect(() => {
@@ -138,23 +141,27 @@ export default function BoardPage() {
 
         // Check permissions
         if (session?.user?.id && boardData.organization_id) {
-          const members = await getOrganizationMembers(boardData.organization_id);
-          const member = members.find((m: any) => m.user_id === session.user.id);
+          const members = await getOrganizationMembers(
+            boardData.organization_id
+          );
+          const member = members.find(
+            (m: any) => m.user_id === session.user.id
+          );
           if (member) {
             // @ts-ignore
             setUserRole(member.role);
           } else if (boardData.created_by === session.user.id) {
-             setUserRole("admin");
+            setUserRole("admin");
           } else {
-             // If public board, maybe viewer?
-             // For now assume editor if not in org but has access (e.g. public)
-             // But if it's an org board and user is not member, they shouldn't see it unless public
-             if (boardData.is_public) {
-                setUserRole("editor"); // Or viewer depending on public settings
-             } else {
-                // Should be handled by RLS, but UI wise:
-                setUserRole("viewer");
-             }
+            // If public board, maybe viewer?
+            // For now assume editor if not in org but has access (e.g. public)
+            // But if it's an org board and user is not member, they shouldn't see it unless public
+            if (boardData.is_public) {
+              setUserRole("editor"); // Or viewer depending on public settings
+            } else {
+              // Should be handled by RLS, but UI wise:
+              setUserRole("viewer");
+            }
           }
         }
 
@@ -466,9 +473,14 @@ export default function BoardPage() {
   // Update item
   const handleUpdateItem = useCallback(
     async (id: string, updates: Record<string, unknown>) => {
-      await updateCanvasItem(id, updates as any);
+      const updated = await updateCanvasItem(id, updates as any);
+      if (updated) {
+        updateNode(id, updated as any);
+      } else {
+        toast.error("Failed to save changes");
+      }
     },
-    []
+    [updateNode]
   );
 
   // Delete item
@@ -533,7 +545,7 @@ export default function BoardPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Disable shortcuts for viewers
-      if (userRole === 'viewer') return;
+      if (userRole === "viewer") return;
 
       // Delete selected node
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -594,7 +606,7 @@ export default function BoardPage() {
                 </div>
               )}
             </div>
-            {userRole === 'viewer' && (
+            {userRole === "viewer" && (
               <span className="ml-2 px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-xs font-medium border border-zinc-700">
                 View Only
               </span>
@@ -618,7 +630,7 @@ export default function BoardPage() {
       </header>
 
       {/* Toolbar */}
-      {userRole !== 'viewer' && (
+      {userRole !== "viewer" && (
         <Toolbar
           onAddNote={handleAddNote}
           onAddHeader={handleAddHeader}
@@ -652,10 +664,14 @@ export default function BoardPage() {
             />
           )}
           <CanvasContent
-            onUpdateItem={userRole !== 'viewer' ? handleUpdateItem : async () => {}}
-            onDeleteItem={userRole !== 'viewer' ? handleDeleteItem : async () => {}}
-            onDragEnd={userRole !== 'viewer' ? handleDragEnd : async () => {}}
-            readOnly={userRole === 'viewer'}
+            onUpdateItem={
+              userRole !== "viewer" ? handleUpdateItem : async () => {}
+            }
+            onDeleteItem={
+              userRole !== "viewer" ? handleDeleteItem : async () => {}
+            }
+            onDragEnd={userRole !== "viewer" ? handleDragEnd : async () => {}}
+            readOnly={userRole === "viewer"}
           />
         </InfiniteCanvas>
       </div>

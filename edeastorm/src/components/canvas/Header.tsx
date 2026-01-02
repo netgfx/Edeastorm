@@ -39,7 +39,13 @@ const HEADER_SIZES = {
   },
 };
 
-export function Header({ data, htmlRef, onUpdate, onDelete, readOnly }: HeaderProps) {
+export function Header({
+  data,
+  htmlRef,
+  onUpdate,
+  onDelete,
+  readOnly,
+}: HeaderProps) {
   const inputRef = useRef<HTMLElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
@@ -108,7 +114,11 @@ export function Header({ data, htmlRef, onUpdate, onDelete, readOnly }: HeaderPr
   // Handle blur (save)
   const handleBlur = useCallback(() => {
     if (data?.id && onUpdate) {
-      const cleanedContent = content.trim();
+      // Re-read from DOM to avoid any stale state
+      const currentHtml = inputRef.current?.innerHTML ?? content;
+      const sanitized = sanitizeHtml(currentHtml, sanitizeConfig).trim();
+      const cleanedContent = htmlDecode(sanitized);
+
       onUpdate(data.id, {
         metadata: {
           ...data.metadata,
@@ -117,7 +127,7 @@ export function Header({ data, htmlRef, onUpdate, onDelete, readOnly }: HeaderPr
       });
     }
     setEditableNode(null);
-  }, [data, onUpdate, setEditableNode, content]);
+  }, [data, onUpdate, setEditableNode, content, sanitizeConfig]);
 
   // Handle double-click to edit
   const handleDoubleClick = useCallback(() => {
@@ -172,6 +182,16 @@ export function Header({ data, htmlRef, onUpdate, onDelete, readOnly }: HeaderPr
   useEffect(() => {
     if (isEditing && !readOnly) {
       inputRef.current?.focus();
+      // Select all content so user can overwrite immediately
+      requestAnimationFrame(() => {
+        const el = inputRef.current;
+        const selection = window.getSelection();
+        if (!el || !selection) return;
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
     }
   }, [isEditing, readOnly]);
 
