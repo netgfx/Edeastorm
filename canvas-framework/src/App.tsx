@@ -1,3 +1,4 @@
+import React from "react";
 import "./styles/styles.css";
 import "./styles/editor.css";
 import StickyCanvas from "./components/StickyCanvas";
