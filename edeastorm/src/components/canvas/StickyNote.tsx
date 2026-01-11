@@ -1,18 +1,15 @@
 /** @format */
 
-import { useRef, useState, useCallback, useEffect, useMemo } from "react";
-import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
-import sanitizeHtml from "sanitize-html";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Trash2, Palette } from "lucide-react";
 import type { CanvasItem } from "@/types/canvas";
 import { useNodeStore } from "@/store/nodeStore";
-import { darkenColor, htmlDecode } from "@/lib/utils";
 import {
   NOTE_COLORS,
   DEFAULT_NOTE_COLOR,
-  MAX_NOTE_CONTENT_LENGTH,
 } from "@/lib/constants";
 import { ResizeHandle } from "./ResizeHandle";
+import { CollaborativeEditor } from "./CollaborativeEditor";
 
 interface StickyNoteProps {
   data?: CanvasItem;
@@ -29,8 +26,6 @@ export function StickyNote({
   onDelete,
   readOnly,
 }: StickyNoteProps) {
-  const inputRef = useRef<HTMLElement>(null);
-  const contentRef = useRef("");
   const [isHovered, setIsHovered] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -79,24 +74,16 @@ export function StickyNote({
     [data, onUpdate]
   );
 
-  // Sanitize config
-  const sanitizeConf = {
-    allowedTags: [],
-    allowedAttributes: {},
-    disallowedTagsMode: "recursiveEscape" as const,
-  };
-  // ... rest of the logic ...
-
   // Handle double click to edit
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (data?.id) {
+      if (data?.id && !readOnly) {
         setEditableNode(data.id);
       }
     },
-    [data?.id, setEditableNode]
+    [data?.id, setEditableNode, readOnly]
   );
 
   // Handle click to select
@@ -110,49 +97,21 @@ export function StickyNote({
     [data, setSelectedNode]
   );
 
-  // Handle content change
-  const handleChange = (evt: ContentEditableEvent) => {
-    const newValue = evt.target.value;
-    if (newValue.length <= MAX_NOTE_CONTENT_LENGTH) {
-      contentRef.current = newValue;
-    }
-  };
-
-  // Handle blur - save content
-  const handleBlur = useCallback(() => {
-    const sanitized = sanitizeHtml(contentRef.current, sanitizeConf);
-    if (data?.id && onUpdate) {
-      onUpdate(data.id, {
-        metadata: {
-          ...data.metadata,
-          title: sanitized,
-        },
-      });
-    }
-    setEditableNode(null);
-  }, [data, onUpdate, setEditableNode]);
-
-  // Handle key events
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      inputRef.current?.blur();
-    }
-    // Prevent excessive content
-    if (
-      inputRef.current &&
-      inputRef.current.innerHTML.length >= MAX_NOTE_CONTENT_LENGTH &&
-      ![
-        "Backspace",
-        "Delete",
-        "ArrowLeft",
-        "ArrowRight",
-        "ArrowUp",
-        "ArrowDown",
-      ].includes(e.key)
-    ) {
-      e.preventDefault();
-    }
-  };
+  // Handle content update from collaborative editor
+  const handleEditorUpdate = useCallback(
+    (content: string) => {
+      if (data?.id && onUpdate && !isDragging) {
+        // Debounce updates to avoid excessive writes
+        onUpdate(data.id, {
+          metadata: {
+            ...data.metadata,
+            title: content,
+          },
+        });
+      }
+    },
+    [data, onUpdate, isDragging]
+  );
 
   // Handle delete
   const handleDelete = useCallback(
@@ -166,32 +125,26 @@ export function StickyNote({
     [data?.id, onDelete, readOnly]
   );
 
-  // Focus when editing
+  // Click outside to stop editing
   useEffect(() => {
-    if (isEditing && inputRef.current && !readOnly) {
-      inputRef.current.focus();
-      // Select all text
-      const selection = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(inputRef.current);
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-  }, [isEditing, readOnly]);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isEditing && !(e.target as Element).closest(`[data-note-id="${data?.id}"]`)) {
+        setEditableNode(null);
+      }
+    };
 
-  // Sync content from data
-  const displayContent = useMemo(() => {
-    const title = data?.metadata?.title || "Add text...";
-    const decoded = htmlDecode(title);
-    contentRef.current = decoded || title;
-    return contentRef.current;
-  }, [data?.metadata?.title]);
+    if (isEditing) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isEditing, data?.id, setEditableNode]);
 
   if (!data) return null;
 
   return (
     <div
       className="relative w-full h-full group"
+      data-note-id={data?.id}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={!readOnly ? handleClick : undefined}
@@ -199,7 +152,7 @@ export function StickyNote({
       {/* Selection indicator */}
       {isSelected && !readOnly && (
         <div
-          className="absolute -inset-1 rounded-lg border-2 border-violet-500 pointer-events-none"
+          className="absolute -inset-1 rounded-lg border-2 border-violet-500 pointer-events-none z-10"
           style={{ boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)" }}
         />
       )}
@@ -216,8 +169,8 @@ export function StickyNote({
             ? "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
             : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
           transform: isDragging ? "scale(1.05) rotate(2deg)" : "scale(1)",
-          borderRadius: "2px", // Slightly squared corners like real post-its
-          borderBottomRightRadius: "25px 5px", // Eared look
+          borderRadius: "2px",
+          borderBottomRightRadius: "25px 5px",
         }}
       >
         {/* Paper texture overlay */}
@@ -227,28 +180,20 @@ export function StickyNote({
         <div
           className="relative w-full h-full flex items-center justify-center p-4"
           onDoubleClick={!readOnly ? handleDoubleClick : undefined}
+          style={{
+            pointerEvents: isEditing ? 'auto' : 'none',
+          }}
         >
-          <ContentEditable
-            innerRef={inputRef as React.RefObject<HTMLElement>}
-            html={displayContent}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            disabled={!isEditing || readOnly}
-            className="w-full text-center text-zinc-900 leading-snug outline-none"
-            style={{
-              fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-              fontSize: data.metadata?.textSize
-                ? `${data.metadata.textSize}px`
-                : "16px",
-              cursor: isEditing ? "text" : readOnly ? "default" : "grab",
-              pointerEvents: isEditing ? "auto" : "none",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          />
+          {data?.id && (
+            <CollaborativeEditor
+              documentId={data.id}
+              placeholder="Add text..."
+              onUpdate={handleEditorUpdate}
+              editable={isEditing && !readOnly}
+              initialContent={data.metadata?.title || ''}
+              className="w-full h-full text-center text-zinc-900"
+            />
+          )}
         </div>
       </div>
 

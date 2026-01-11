@@ -232,7 +232,11 @@ export default function BoardPage() {
             addNode(payload.new as CanvasItem);
             break;
           case "UPDATE":
-            addNode(payload.new as CanvasItem);
+            // Skip updates for items currently being dragged to avoid interference
+            const isDragging = useNodeStore.getState().isDraggingNode === payload.new?.id;
+            if (!isDragging) {
+              addNode(payload.new as CanvasItem);
+            }
             break;
           case "DELETE":
             if (payload.old?.id) {
@@ -497,12 +501,27 @@ export default function BoardPage() {
     [setSelectedNode, setEditableNode, removeNode]
   );
 
-  // Handle drag end
+  // Handle drag end - send final position with optimistic locking
   const handleDragEnd = useCallback(
     async (id: string, x: number, y: number) => {
-      await updateCanvasItem(id, { x, y });
+      // Get current version from store
+      const node = useNodeStore.getState().nodes.find(n => n.id === id);
+      const currentVersion = node?.version;
+      
+      const updated = await updateCanvasItem(
+        id, 
+        { x, y },
+        currentVersion // Pass version for optimistic locking
+      );
+      
+      if (updated && updated.version !== (currentVersion ?? 0) + 1) {
+        // Version conflict - someone else modified this item
+        // Update local state with the latest version from server
+        updateNode(id, updated);
+        toast.warning("Item was updated by another user");
+      }
     },
-    []
+    [updateNode]
   );
 
   // Save snapshot

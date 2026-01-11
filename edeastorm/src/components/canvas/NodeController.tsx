@@ -109,9 +109,20 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
       minimumMovement: 5,
       activeCursor: 'grabbing',
       allowContextMenu: true,
+      onDragStart: function () {
+        // Mark as dragging in store to prevent realtime updates
+        const { setIsDraggingNode } = require('@/store/nodeStore').useNodeStore.getState();
+        setIsDraggingNode(data.id);
+      },
       onDragEnd: function () {
         const x = Number(gsap.getProperty(this.target, 'x'));
         const y = Number(gsap.getProperty(this.target, 'y'));
+        
+        // Clear dragging state
+        const { setIsDraggingNode } = require('@/store/nodeStore').useNodeStore.getState();
+        setIsDraggingNode(null);
+        
+        // Send final position to server
         onDragEnd?.(data.id, x, y);
       },
       onPress: function (e) {

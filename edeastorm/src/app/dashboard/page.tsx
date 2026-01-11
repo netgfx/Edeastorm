@@ -49,13 +49,17 @@ import {
 import { formatRelativeTime } from "@/lib/utils";
 import type { Tables } from "@/types/database";
 import toast from "react-hot-toast";
+import { BoardCard } from "@/components/canvas/BoardCard";
 
 type OrgWithRole = Pick<Tables<"organizations">, "id" | "name" | "slug"> & {
   role: "admin" | "editor" | "viewer";
 };
 
 type MemberWithProfile = Tables<"organization_members"> & {
-  profiles: Pick<Tables<"profiles">, "id" | "full_name" | "email" | "avatar_url">;
+  profiles: Pick<
+    Tables<"profiles">,
+    "id" | "full_name" | "email" | "avatar_url"
+  >;
 };
 
 export default function DashboardPage() {
@@ -82,7 +86,9 @@ export default function DashboardPage() {
   const [orgMembers, setOrgMembers] = useState<MemberWithProfile[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "editor" | "viewer">("viewer");
+  const [inviteRole, setInviteRole] = useState<"admin" | "editor" | "viewer">(
+    "viewer"
+  );
   const [isInviting, setIsInviting] = useState(false);
   const [showTeamManagement, setShowTeamManagement] = useState(false);
 
@@ -102,17 +108,17 @@ export default function DashboardPage() {
           const orgs = await getUserOrganizations(session.user.id);
           // @ts-ignore
           setUserOrgs(orgs);
-          
+
           // Set default selected org (personal or first one)
           // Ideally we check session.user.organizationId but let's use the list
           if (orgs.length > 0) {
-             // Prefer the one in session if available
-             const defaultOrg = orgs.find(o => o.id === session.user.organizationId) || orgs[0];
-             setSelectedOrgId(defaultOrg.id);
-             setOrganization(defaultOrg as any); // Type mismatch workaround for now
-             setNewOrgName(defaultOrg.name);
+            // Prefer the one in session if available
+            const defaultOrg =
+              orgs.find((o) => o.id === session.user.organizationId) || orgs[0];
+            setSelectedOrgId(defaultOrg.id);
+            setOrganization(defaultOrg as any); // Type mismatch workaround for now
+            setNewOrgName(defaultOrg.name);
           }
-
         } catch (error) {
           console.error("Error fetching data:", error);
           toast.error("Failed to load dashboard");
@@ -135,17 +141,17 @@ export default function DashboardPage() {
         try {
           const [orgBoards, members] = await Promise.all([
             getOrganizationBoards(selectedOrgId),
-            getOrganizationMembers(selectedOrgId)
+            getOrganizationMembers(selectedOrgId),
           ]);
           setBoards(orgBoards);
           // @ts-ignore
           setOrgMembers(members);
-          
+
           // Update current organization object
-          const currentOrg = userOrgs.find(o => o.id === selectedOrgId);
+          const currentOrg = userOrgs.find((o) => o.id === selectedOrgId);
           if (currentOrg) {
-             setOrganization(currentOrg as any);
-             setNewOrgName(currentOrg.name);
+            setOrganization(currentOrg as any);
+            setNewOrgName(currentOrg.name);
           }
         } catch (error) {
           console.error("Error fetching org data:", error);
@@ -208,7 +214,7 @@ export default function DashboardPage() {
 
   const handleInviteMember = async () => {
     if (!inviteEmail.trim() || !selectedOrgId) return;
-    
+
     setIsInviting(true);
     try {
       const result = await inviteMember(selectedOrgId, inviteEmail, inviteRole);
@@ -249,9 +255,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleUpdateRole = async (userId: string, newRole: "admin" | "editor" | "viewer") => {
+  const handleUpdateRole = async (
+    userId: string,
+    newRole: "admin" | "editor" | "viewer"
+  ) => {
     if (!selectedOrgId) return;
-    
+
     try {
       const success = await updateMemberRole(selectedOrgId, userId, newRole);
       if (success) {
@@ -277,7 +286,11 @@ export default function DashboardPage() {
       if (updated) {
         setOrganization(updated);
         // Update in list too
-        setUserOrgs(prev => prev.map(o => o.id === updated.id ? { ...o, name: updated.name } : o));
+        setUserOrgs((prev) =>
+          prev.map((o) =>
+            o.id === updated.id ? { ...o, name: updated.name } : o
+          )
+        );
         setIsRenamingOrg(false);
         toast.success("Organization renamed!");
       }
@@ -402,17 +415,17 @@ export default function DashboardPage() {
                   }`}
                 >
                   <span className="truncate">{org.name}</span>
-                  {org.role === 'admin' && (
+                  {org.role === "admin" && (
                     <span className="text-[10px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded border border-violet-500/20">
                       Admin
                     </span>
                   )}
-                  {org.role === 'editor' && (
+                  {org.role === "editor" && (
                     <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
                       Editor
                     </span>
                   )}
-                  {org.role === 'viewer' && (
+                  {org.role === "viewer" && (
                     <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700">
                       Viewer
                     </span>
@@ -449,11 +462,13 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold mb-1">Team Members</h1>
-                  <p className="text-zinc-400">Manage access to {organization?.name}</p>
+                  <p className="text-zinc-400">
+                    Manage access to {organization?.name}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={() => setShowTeamManagement(false)}
                   >
                     Back to Boards
@@ -471,7 +486,9 @@ export default function DashboardPage() {
                     <tr>
                       <th className="px-6 py-4 font-medium">User</th>
                       <th className="px-6 py-4 font-medium">Role</th>
-                      <th className="px-6 py-4 font-medium text-right">Actions</th>
+                      <th className="px-6 py-4 font-medium text-right">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -484,7 +501,11 @@ export default function DashboardPage() {
                                 <AvatarImage src={member.profiles.avatar_url} />
                               )}
                               <AvatarFallback>
-                                {getInitials(member.profiles?.full_name || member.profiles?.email || "U")}
+                                {getInitials(
+                                  member.profiles?.full_name ||
+                                    member.profiles?.email ||
+                                    "U"
+                                )}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -500,7 +521,12 @@ export default function DashboardPage() {
                         <td className="px-6 py-4">
                           <select
                             value={member.role}
-                            onChange={(e) => handleUpdateRole(member.user_id, e.target.value as any)}
+                            onChange={(e) =>
+                              handleUpdateRole(
+                                member.user_id,
+                                e.target.value as any
+                              )
+                            }
                             disabled={member.user_id === session?.user?.id} // Can't change own role
                             className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-violet-500 outline-none"
                           >
@@ -569,7 +595,8 @@ export default function DashboardPage() {
                   <h1 className="text-3xl font-bold">Boards</h1>
                 </div>
                 <p className="text-zinc-400">
-                  {boards.length} board{boards.length !== 1 ? "s" : ""} in this workspace
+                  {boards.length} board{boards.length !== 1 ? "s" : ""} in this
+                  workspace
                 </p>
               </div>
 
@@ -581,7 +608,8 @@ export default function DashboardPage() {
                   </div>
                   <h2 className="text-xl font-semibold mb-2">No boards yet</h2>
                   <p className="text-zinc-400 mb-6">
-                    Create your first board to start brainstorming with your team
+                    Create your first board to start brainstorming with your
+                    team
                   </p>
                   <Button onClick={() => setIsCreateModalOpen(true)}>
                     <Plus className="w-4 h-4" />
@@ -605,35 +633,7 @@ export default function DashboardPage() {
 
                   {/* Board cards */}
                   {boards.map((board) => (
-                    <Link
-                      key={board.id}
-                      href={`/board/${board.short_id}`}
-                      className="h-48 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-violet-500/50 p-5 flex flex-col transition-all hover:shadow-lg hover:shadow-violet-500/5 group"
-                    >
-                      {/* Thumbnail preview */}
-                      <div className="flex-1 rounded-lg bg-zinc-800/50 mb-4 overflow-hidden grid-bg relative">
-                        {/* We could add a preview image here later */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[1px]">
-                          <span className="text-xs font-medium bg-black/50 px-2 py-1 rounded text-white">Open Board</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h3 className="font-medium truncate group-hover:text-violet-400 transition-colors">
-                            {board.title}
-                          </h3>
-                          <p className="text-xs text-zinc-500 truncate">
-                            Edited {formatRelativeTime(board.updated_at || board.created_at)}
-                          </p>
-                        </div>
-                        {board.is_public && (
-                          <div className="shrink-0" title="Public Board">
-                            <Users className="w-3 h-3 text-zinc-500" />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
+                    <BoardCard key={board.id} board={board} />
                   ))}
                 </div>
               )}
@@ -648,12 +648,15 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
-              Send an invitation to join {organization?.name}. They will receive an email with instructions.
+              Send an invitation to join {organization?.name}. They will receive
+              an email with instructions.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Email Address</label>
+              <label className="text-sm font-medium text-zinc-400">
+                Email Address
+              </label>
               <Input
                 placeholder="colleague@example.com"
                 value={inviteEmail}
@@ -663,7 +666,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">Role</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['admin', 'editor', 'viewer'] as const).map((role) => (
+                {(["admin", "editor", "viewer"] as const).map((role) => (
                   <button
                     key={role}
                     onClick={() => setInviteRole(role)}
@@ -678,9 +681,11 @@ export default function DashboardPage() {
                 ))}
               </div>
               <p className="text-xs text-zinc-500 mt-1">
-                {inviteRole === 'admin' && "Can manage team members and all boards."}
-                {inviteRole === 'editor' && "Can create and edit boards."}
-                {inviteRole === 'viewer' && "Can only view boards. No editing allowed."}
+                {inviteRole === "admin" &&
+                  "Can manage team members and all boards."}
+                {inviteRole === "editor" && "Can create and edit boards."}
+                {inviteRole === "viewer" &&
+                  "Can only view boards. No editing allowed."}
               </p>
             </div>
           </div>
@@ -688,13 +693,15 @@ export default function DashboardPage() {
             <Button variant="ghost" onClick={() => setIsInviteModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleInviteMember} disabled={isInviting || !inviteEmail.trim()}>
+            <Button
+              onClick={handleInviteMember}
+              disabled={isInviting || !inviteEmail.trim()}
+            >
               {isInviting ? "Sending..." : "Send Invitation"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
 
       {/* Create Board Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>

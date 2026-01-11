@@ -169,8 +169,36 @@ export async function createCanvasItem(
 
 export async function updateCanvasItem(
   itemId: string,
-  updates: UpdateTables<"canvas_items">
+  updates: UpdateTables<"canvas_items">,
+  expectedVersion?: number
 ): Promise<CanvasItem | null> {
+  // If version is provided, use optimistic locking
+  if (expectedVersion !== undefined) {
+    const { data, error } = await supabase.rpc('update_canvas_item_with_version', {
+      p_id: itemId,
+      p_expected_version: expectedVersion,
+      p_updates: updates as any,
+    });
+
+    if (error) {
+      console.error("Error updating canvas item with version:", error);
+      return null;
+    }
+
+    const result = data?.[0];
+    if (!result?.success) {
+      console.warn("Version conflict detected", {
+        expectedVersion,
+        currentVersion: result?.current_version,
+      });
+      // Return the current item from the database
+      return result?.item as CanvasItem;
+    }
+
+    return result?.item as CanvasItem;
+  }
+
+  // Fallback to simple update without version checking
   const { data, error } = await supabase
     .from("canvas_items")
     // @ts-ignore

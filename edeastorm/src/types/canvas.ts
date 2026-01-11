@@ -25,6 +25,7 @@ export interface CanvasItemMetadata {
 
 export interface CanvasItem extends Omit<Tables<"canvas_items">, "metadata"> {
   metadata: CanvasItemMetadata;
+  version?: number; // For optimistic locking
 }
 
 // User presence types
