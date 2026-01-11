@@ -1,6 +1,7 @@
 /** @format */
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Trash2, Palette } from "lucide-react";
 import type { CanvasItem } from "@/types/canvas";
 import { useNodeStore } from "@/store/nodeStore";
@@ -9,7 +10,12 @@ import {
   DEFAULT_NOTE_COLOR,
 } from "@/lib/constants";
 import { ResizeHandle } from "./ResizeHandle";
-import { CollaborativeEditor } from "./CollaborativeEditor";
+
+// Dynamically import CollaborativeEditor to avoid Yjs multiple import issues
+const CollaborativeEditor = dynamic(
+  () => import("./CollaborativeEditor").then((mod) => ({ default: mod.CollaborativeEditor })),
+  { ssr: false }
+);
 
 interface StickyNoteProps {
   data?: CanvasItem;

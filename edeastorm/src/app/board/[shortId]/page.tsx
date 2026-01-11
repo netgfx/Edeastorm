@@ -518,7 +518,9 @@ export default function BoardPage() {
         // Version conflict - someone else modified this item
         // Update local state with the latest version from server
         updateNode(id, updated);
-        toast.warning("Item was updated by another user");
+        toast('Item was updated by another user', {
+          icon: '⚠️',
+        });
       }
     },
     [updateNode]
