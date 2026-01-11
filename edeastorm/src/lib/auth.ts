@@ -7,6 +7,28 @@ import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { supabase } from "@/lib/supabase";
 
+// Configure fetch with timeout for OAuth providers
+const fetchWithTimeout = async (
+  url: string,
+  options: any = {},
+  timeout = 10000
+) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+};
+
 export const authConfig: NextAuthConfig = {
   providers: [
     Google({
@@ -17,6 +39,28 @@ export const authConfig: NextAuthConfig = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
+        },
+      },
+      // Increase timeout for token exchange
+      token: {
+        async request(context) {
+          try {
+            const response = await fetchWithTimeout(
+              context.provider.token?.url!,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams(context.params),
+              },
+              15000 // 15 second timeout
+            );
+            return await response.json();
+          } catch (error) {
+            console.error("Google token exchange error:", error);
+            throw error;
+          }
         },
       },
     }),
@@ -67,7 +111,75 @@ export const authConfig: NextAuthConfig = {
       try {
         const supabase = supabaseAdmin();
 
-        // Check if user exists in profiles
+        // First, check if user exists in Supabase Auth
+        const { data: authUsers } = await supabase.auth.admin.listUsers();
+        let supabaseUser = authUsers.users.find((u) => u.email === user.email);
+
+        // If user doesn't exist in Supabase Auth, create them
+        if (!supabaseUser) {
+          console.log("Creating Supabase Auth user for:", user.email);
+
+          const { data: newUser, error: authError } =
+            await supabase.auth.admin.createUser({
+              email: user.email,
+              email_confirm: true, // Auto-confirm since they've authenticated via OAuth
+              user_metadata: {
+                full_name: user.name || user.email.split("@")[0],
+                avatar_url: user.image,
+                provider: account?.provider || "unknown",
+              },
+            });
+
+          if (authError) {
+            console.error("Error creating Supabase Auth user:", authError);
+            console.error("Auth error details:", {
+              message: authError.message,
+              status: authError.status,
+              code: authError.code,
+            });
+
+            // If user already exists, try to find them
+            if (
+              authError.message?.includes("already") ||
+              authError.status === 422
+            ) {
+              console.log("User might already exist, trying to find them...");
+              const { data: existingUsers } =
+                await supabase.auth.admin.listUsers();
+              supabaseUser = existingUsers.users.find(
+                (u) => u.email === user.email
+              );
+
+              if (supabaseUser) {
+                console.log("Found existing Supabase user:", supabaseUser.id);
+              } else {
+                console.error("Could not find existing user, failing sign in");
+                return false;
+              }
+            } else {
+              return false;
+            }
+          } else {
+            supabaseUser = newUser.user;
+            console.log(
+              "Created Supabase Auth user with ID:",
+              supabaseUser?.id
+            );
+          }
+
+          supabaseUser = newUser.user;
+          console.log("Created Supabase Auth user with ID:", supabaseUser?.id);
+        }
+
+        if (!supabaseUser) {
+          console.error("Failed to get or create Supabase user");
+          return false;
+        }
+
+        // Update the NextAuth user ID to match the Supabase user ID
+        user.id = supabaseUser.id;
+
+        // Check if profile exists
         const { data: existingProfile } = await supabase
           .from("profiles")
           .select("id")
@@ -75,32 +187,17 @@ export const authConfig: NextAuthConfig = {
           .single();
 
         if (!existingProfile) {
-          // Extract domain from email
-          const domain = user.email.split("@")[1];
-
-          // Check if domain is in any organization's allowed_domains
-          const { data: org } = await supabase
-            .from("organizations")
-            .select("id")
-            .contains("allowed_domains", [domain])
-            .single();
-
-          // Use the Auth User ID if it's a valid UUID (Supabase Auth), otherwise generate one
-          const isUuid =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-              user.id
-            );
-          const userId = isUuid ? user.id : crypto.randomUUID();
+          console.log("Creating basic profile for:", user.email);
 
           const { error: insertError } = await supabase
             .from("profiles")
             .insert({
-              id: userId,
+              id: supabaseUser.id, // Use the Supabase Auth user ID
               email: user.email,
               full_name: user.name || user.email.split("@")[0],
               avatar_url: user.image,
-              organization_id: org?.id || null,
               role: "contributor",
+              // organization_id is left null, will be set during onboarding or invitation acceptance
             });
 
           if (insertError) {
@@ -108,13 +205,26 @@ export const authConfig: NextAuthConfig = {
               "Error creating profile in signIn callback:",
               insertError
             );
+            // Don't fail sign in on profile creation error, but log it
+            // It might be fixed in the subsequent flow
+          } else {
+            console.log("Profile created successfully for:", user.email);
           }
         }
+
+        console.log(
+          "Sign in successful for:",
+          user.email,
+          "with Supabase ID:",
+          user.id
+        );
 
         return true;
       } catch (error) {
         console.error("Error in signIn callback:", error);
-        return true; // Still allow sign in, profile creation can be retried
+        // Don't fail sign in on errors - allow the user to sign in
+        // Profile and other data can be created/fixed later
+        return true;
       }
     },
     async jwt({ token, user, account, profile }) {
@@ -152,14 +262,8 @@ export const authConfig: NextAuthConfig = {
     },
     async session({ session, token }) {
       if (session.user) {
-        // Use supabaseId if available, fallback to NextAuth id if it looks like a UUID
-        const isUuid = (id: string) =>
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-            id
-          );
-
-        session.user.id = (token.supabaseId ||
-          (isUuid(token.id) ? token.id : null)) as string;
+        // Always use the Supabase user ID (set in signIn callback)
+        session.user.id = (token.supabaseId || token.id) as string;
         session.user.role = (token.role || "contributor") as string;
         session.user.organizationId = token.organizationId as string | null;
       }
@@ -174,6 +278,15 @@ export const authConfig: NextAuthConfig = {
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  events: {
+    async signIn({ user, account }) {
+      console.log("✓ Sign in successful:", {
+        email: user.email,
+        provider: account?.provider,
+      });
+    },
+  },
+  debug: process.env.NODE_ENV === "development",
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

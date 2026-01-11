@@ -1,4 +1,4 @@
--- IdeaFlow Realtime & Storage Configuration
+-- Edeastorm Realtime & Storage Configuration
 -- Migration: 004_realtime_and_storage.sql
 -- Description: Sets up realtime publication and storage buckets
 

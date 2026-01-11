@@ -7,39 +7,39 @@ export const TILE_WIDTH = 140;
 export const TILE_HEIGHT = 140;
 
 // Default note color
-export const DEFAULT_NOTE_COLOR = 'yellow';
+export const DEFAULT_NOTE_COLOR = "yellow";
 
 // Note color palette - 6 readable colors with good contrast
 export const NOTE_COLORS: Record<string, string> = {
-  yellow: '#FEF3C7',    // Soft yellow
-  pink: '#FBCFE8',      // Soft pink
-  blue: '#DBEAFE',      // Soft blue
-  green: '#D1FAE5',     // Soft green
-  purple: '#E9D5FF',    // Soft purple
-  orange: '#FED7AA',    // Soft orange
+  yellow: "#FEF3C7", // Soft yellow
+  pink: "#FBCFE8", // Soft pink
+  blue: "#DBEAFE", // Soft blue
+  green: "#D1FAE5", // Soft green
+  purple: "#E9D5FF", // Soft purple
+  orange: "#FED7AA", // Soft orange
 };
 
 // Color names for UI display
 export const NOTE_COLOR_NAMES: Record<string, string> = {
-  yellow: 'Yellow',
-  pink: 'Pink',
-  blue: 'Blue',
-  green: 'Green',
-  purple: 'Purple',
-  orange: 'Orange',
+  yellow: "Yellow",
+  pink: "Pink",
+  blue: "Blue",
+  green: "Green",
+  purple: "Purple",
+  orange: "Orange",
 };
 
 // Color swatches in RGB format (for certain UI elements)
 export const SWATCHES_RGB: Record<string, string> = {
-  purple: '106, 69, 208',
-  green: '82, 184, 126',
-  blue: '80, 120, 223',
-  red: '228, 71, 71',
-  orange: '231, 141, 51',
-  pink: '239, 105, 151',
-  brown: '124, 99, 91',
-  teal: '0, 188, 215',
-  grey: '148, 148, 148',
+  purple: "106, 69, 208",
+  green: "82, 184, 126",
+  blue: "80, 120, 223",
+  red: "228, 71, 71",
+  orange: "231, 141, 51",
+  pink: "239, 105, 151",
+  brown: "124, 99, 91",
+  teal: "0, 188, 215",
+  grey: "148, 148, 148",
 };
 
 // Zoom constraints
@@ -53,35 +53,35 @@ export const LAST_SEEN_UPDATE_THRESHOLD = 15 * 60 * 1000; // 15 minutes
 
 // Canvas item types
 export const ITEM_TYPES = {
-  STICKY_NOTE: 'sticky_note',
-  IMAGE: 'image',
-  HEADER: 'header',
-  SHAPE: 'shape',
-  CONNECTOR: 'connector',
+  STICKY_NOTE: "sticky_note",
+  IMAGE: "image",
+  HEADER: "header",
+  SHAPE: "shape",
+  CONNECTOR: "connector",
 } as const;
 
 // User roles
 export const USER_ROLES = {
-  VIEWER: 'viewer',
-  CONTRIBUTOR: 'contributor',
-  EDITOR: 'editor',
-  ADMIN: 'admin',
-  SUPER_ADMIN: 'super_admin',
+  VIEWER: "viewer",
+  CONTRIBUTOR: "contributor",
+  EDITOR: "editor",
+  ADMIN: "admin",
+  SUPER_ADMIN: "super_admin",
 } as const;
 
 // Board access roles
 export const BOARD_ROLES = {
-  VIEWER: 'viewer',
-  CONTRIBUTOR: 'contributor',
-  EDITOR: 'editor',
-  ADMIN: 'admin',
+  VIEWER: "viewer",
+  CONTRIBUTOR: "contributor",
+  EDITOR: "editor",
+  ADMIN: "admin",
 } as const;
 
 // Team member roles
 export const TEAM_ROLES = {
-  MEMBER: 'member',
-  MODERATOR: 'moderator',
-  OWNER: 'owner',
+  MEMBER: "member",
+  MODERATOR: "moderator",
+  OWNER: "owner",
 } as const;
 
 // Animation durations (in seconds)
@@ -106,3 +106,40 @@ export const MAX_NOTE_CONTENT_LENGTH = 200;
 
 // Cursors update throttle
 export const CURSOR_UPDATE_THROTTLE = 50; // ms
+
+// Permissions
+export const PERMISSIONS = {
+  // Organization Scope
+  MANAGE_ORGANIZATION: "org:manage", // Rename, settings
+  DELETE_ORGANIZATION: "org:delete",
+
+  // Team Scope
+  VIEW_TEAM: "team:view",
+  MANAGE_TEAM: "team:manage", // Invite, remove, change roles
+
+  // Board Scope (General Org Level)
+  CREATE_BOARD: "board:create",
+  DELETE_ANY_BOARD: "board:delete_any",
+  VIEW_BOARDS: "board:view",
+} as const;
+
+export type OrganizationRole = "admin" | "editor" | "viewer";
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+export const ROLE_PERMISSIONS: Record<OrganizationRole, Permission[]> = {
+  admin: [
+    PERMISSIONS.MANAGE_ORGANIZATION,
+    PERMISSIONS.DELETE_ORGANIZATION,
+    PERMISSIONS.VIEW_TEAM,
+    PERMISSIONS.MANAGE_TEAM,
+    PERMISSIONS.CREATE_BOARD,
+    PERMISSIONS.DELETE_ANY_BOARD,
+    PERMISSIONS.VIEW_BOARDS,
+  ],
+  editor: [
+    PERMISSIONS.VIEW_TEAM,
+    PERMISSIONS.CREATE_BOARD,
+    PERMISSIONS.VIEW_BOARDS,
+  ],
+  viewer: [PERMISSIONS.VIEW_TEAM, PERMISSIONS.VIEW_BOARDS],
+};

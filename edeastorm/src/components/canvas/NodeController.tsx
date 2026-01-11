@@ -1,12 +1,19 @@
 // @ts-nocheck
-'use client';
+"use client";
 
-import { useRef, useCallback, useEffect, createContext, useContext, cloneElement } from 'react';
-import gsap from 'gsap';
-import { Draggable } from 'gsap/all';
-import { useGSAP } from '@gsap/react';
-import type { CanvasItem, DraggableContextType } from '@/types/canvas';
-import { getHypotenuse } from '@/lib/utils';
+import {
+  useRef,
+  useCallback,
+  useEffect,
+  createContext,
+  useContext,
+  cloneElement,
+} from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/all";
+import { useGSAP } from "@gsap/react";
+import type { CanvasItem, DraggableContextType } from "@/types/canvas";
+import { getHypotenuse } from "@/lib/utils";
 
 gsap.registerPlugin(Draggable);
 
@@ -21,7 +28,12 @@ interface NodeControllerProps {
   onDragEnd?: (id: string, x: number, y: number) => void;
 }
 
-export function NodeController({ data, children, snap = true, onDragEnd }: NodeControllerProps) {
+export function NodeController({
+  data,
+  children,
+  snap = true,
+  onDragEnd,
+}: NodeControllerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mainDraggable = useRef<Draggable | null>(null);
   const htmlRef = useRef<HTMLDivElement | null>(null);
@@ -29,14 +41,14 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
   // Get snap points from other nodes
   const getSnapPoints = useCallback(() => {
     const points: { x: number; y: number }[] = [];
-    const snapAreas = Array.from(document.getElementsByClassName('snap-area')).filter(
-      (area) => area.getAttribute('data-id') !== data.id
-    );
+    const snapAreas = Array.from(
+      document.getElementsByClassName("snap-area")
+    ).filter((area) => area.getAttribute("data-id") !== data.id);
 
     snapAreas.forEach((area) => {
       const rect = area.getBoundingClientRect();
-      const xPos = Number(gsap.getProperty(area, 'x'));
-      const yPos = Number(gsap.getProperty(area, 'y'));
+      const xPos = Number(gsap.getProperty(area, "x"));
+      const yPos = Number(gsap.getProperty(area, "y"));
 
       // Add corner and center points
       points.push(
@@ -71,13 +83,28 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
         { x: xPos, y: yPos, offsetX: 0, offsetY: 0 },
         { x: xPos + rect.width, y: yPos, offsetX: rect.width, offsetY: 0 },
         { x: xPos, y: yPos + rect.height, offsetX: 0, offsetY: rect.height },
-        { x: xPos + rect.width, y: yPos + rect.height, offsetX: rect.width, offsetY: rect.height },
-        { x: xPos + rect.width / 2, y: yPos + rect.height / 2, offsetX: rect.width / 2, offsetY: rect.height / 2 },
+        {
+          x: xPos + rect.width,
+          y: yPos + rect.height,
+          offsetX: rect.width,
+          offsetY: rect.height,
+        },
+        {
+          x: xPos + rect.width / 2,
+          y: yPos + rect.height / 2,
+          offsetX: rect.width / 2,
+          offsetY: rect.height / 2,
+        },
       ];
 
       currentPoints.forEach((dragPoint) => {
         snapPoints.forEach((snapPoint) => {
-          const distance = getHypotenuse(snapPoint.x, snapPoint.y, dragPoint.x, dragPoint.y);
+          const distance = getHypotenuse(
+            snapPoint.x,
+            snapPoint.y,
+            dragPoint.x,
+            dragPoint.y
+          );
 
           if (distance < snapRadius && distance < closestDistance) {
             closestDistance = distance;
@@ -99,29 +126,31 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
     if (!data) return;
 
     mainDraggable.current = Draggable.create(containerRef.current, {
-      type: 'x,y',
+      type: "x,y",
       edgeResistance: 0.65,
-      bounds: '#draggable-area',
+      bounds: "#draggable-area",
       autoScroll: 1,
       trigger: htmlRef.current ?? containerRef.current,
       inertia: true,
       clickable: true,
       minimumMovement: 5,
-      activeCursor: 'grabbing',
+      activeCursor: "grabbing",
       allowContextMenu: true,
       onDragStart: function () {
         // Mark as dragging in store to prevent realtime updates
-        const { setIsDraggingNode } = require('@/store/nodeStore').useNodeStore.getState();
+        const { setIsDraggingNode } =
+          require("@/store/nodeStore").useNodeStore.getState();
         setIsDraggingNode(data.id);
       },
       onDragEnd: function () {
-        const x = Number(gsap.getProperty(this.target, 'x'));
-        const y = Number(gsap.getProperty(this.target, 'y'));
-        
+        const x = Number(gsap.getProperty(this.target, "x"));
+        const y = Number(gsap.getProperty(this.target, "y"));
+
         // Clear dragging state
-        const { setIsDraggingNode } = require('@/store/nodeStore').useNodeStore.getState();
+        const { setIsDraggingNode } =
+          require("@/store/nodeStore").useNodeStore.getState();
         setIsDraggingNode(null);
-        
+
         // Send final position to server
         onDragEnd?.(data.id, x, y);
       },
@@ -155,8 +184,8 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
   // Update position when data changes
   useEffect(() => {
     if (data.x !== undefined && data.y !== undefined && containerRef.current) {
-      const currentX = Number(gsap.getProperty(containerRef.current, 'x'));
-      const currentY = Number(gsap.getProperty(containerRef.current, 'y'));
+      const currentX = Number(gsap.getProperty(containerRef.current, "x"));
+      const currentY = Number(gsap.getProperty(containerRef.current, "y"));
 
       // Only update if significantly different (to avoid fighting with drag)
       if (Math.abs(currentX - data.x) > 5 || Math.abs(currentY - data.y) > 5) {
@@ -178,7 +207,7 @@ export function NodeController({ data, children, snap = true, onDragEnd }: NodeC
         className="snap-area absolute"
         data-id={data.id}
         style={{
-          pointerEvents: 'auto',
+          pointerEvents: "auto",
           width: data.metadata?.size?.width ?? 140,
           height: data.metadata?.size?.height ?? 140,
           top: 0,

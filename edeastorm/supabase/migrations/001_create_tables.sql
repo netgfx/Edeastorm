@@ -1,4 +1,4 @@
--- IdeaFlow Database Schema
+-- Edeastorm Database Schema
 -- Migration: 001_create_tables.sql
 -- Description: Creates the core tables for the collaborative ideation app
 

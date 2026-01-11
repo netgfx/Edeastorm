@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Collaboration from '@tiptap/extension-collaboration';
-import Placeholder from '@tiptap/extension-placeholder';
-import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
-import { SupabaseProvider } from '@/lib/SupabaseProvider';
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Collaboration from "@tiptap/extension-collaboration";
+import Placeholder from "@tiptap/extension-placeholder";
+import * as Y from "yjs";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { SupabaseProvider } from "@/lib/SupabaseProvider";
 
 interface CollaborativeEditorProps {
   documentId: string;
@@ -21,11 +21,11 @@ interface CollaborativeEditorProps {
 
 export function CollaborativeEditor({
   documentId,
-  placeholder = 'Start typing...',
+  placeholder = "Start typing...",
   onUpdate,
   editable = true,
-  className = '',
-  initialContent = '',
+  className = "",
+  initialContent = "",
 }: CollaborativeEditorProps) {
   const providerRef = useRef<SupabaseProvider | null>(null);
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
@@ -57,13 +57,20 @@ export function CollaborativeEditor({
     initializedRef.current = true;
 
     // Setup IndexedDB for offline persistence
-    persistenceRef.current = new IndexeddbPersistence(`yjs-doc-${documentId}`, ydoc);
+    persistenceRef.current = new IndexeddbPersistence(
+      `yjs-doc-${documentId}`,
+      ydoc
+    );
 
     persistenceRef.current.whenSynced.then(() => {
-      console.log('✓ Loaded from IndexedDB');
+      console.log("✓ Loaded from IndexedDB");
 
       // If document is empty and we have initial content, set it
-      if (editor.isEmpty && initialContent && !ydoc.getText('prosemirror').toString()) {
+      if (
+        editor.isEmpty &&
+        initialContent &&
+        !ydoc.getText("prosemirror").toString()
+      ) {
         editor.commands.setContent(initialContent);
       }
 
@@ -72,7 +79,7 @@ export function CollaborativeEditor({
         supabase,
         documentId,
         onSynced: () => {
-          console.log('✓ Synced with Supabase');
+          console.log("✓ Synced with Supabase");
         },
       });
     });
@@ -92,8 +99,8 @@ export function CollaborativeEditor({
 
   return (
     <div className={`relative ${className}`}>
-      <EditorContent 
-        editor={editor} 
+      <EditorContent
+        editor={editor}
         className="prose prose-sm max-w-none dark:prose-invert focus:outline-none"
       />
     </div>

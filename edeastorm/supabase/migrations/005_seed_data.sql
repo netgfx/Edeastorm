@@ -1,4 +1,4 @@
--- IdeaFlow Seed Data
+-- Edeastorm Seed Data
 -- Migration: 005_seed_data.sql
 -- Description: Creates initial organization and demo data
 
@@ -9,7 +9,7 @@
 INSERT INTO public.organizations (id, name, slug, allowed_domains, logo_url)
 VALUES (
     'a0000000-0000-0000-0000-000000000001',
-    'IdeaFlow Demo',
+    'Edeastorm Demo',
     'demo',
     ARRAY['gmail.com', 'outlook.com', 'yahoo.com'], -- Allow common email providers for demo
     NULL

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql:*)",
+      "Bash(npm install:*)",
+      "Bash(npx supabase db reset:*)",
+      "Bash(npx supabase migration:*)",
+      "Bash(node run-migration.js:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

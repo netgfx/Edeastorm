@@ -1,4 +1,4 @@
--- IdeaFlow Row Level Security Policies
+-- Edeastorm Row Level Security Policies
 -- Migration: 003_rls_policies.sql
 -- Description: Creates RLS policies for all tables
 

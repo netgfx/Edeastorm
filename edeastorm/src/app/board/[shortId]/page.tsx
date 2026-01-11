@@ -101,7 +101,7 @@ export default function BoardPage() {
   // Handle theme persistence
   useEffect(() => {
     const userId = session?.user?.id || username || "anonymous";
-    const savedTheme = localStorage.getItem(`ideaflow-theme-${userId}`);
+    const savedTheme = localStorage.getItem(`edeastorm-theme-${userId}`);
     if (savedTheme === "light" || savedTheme === "dark") {
       setTheme(savedTheme as "light" | "dark");
     }
@@ -109,7 +109,7 @@ export default function BoardPage() {
 
   useEffect(() => {
     const userId = session?.user?.id || username || "anonymous";
-    localStorage.setItem(`ideaflow-theme-${userId}`, theme);
+    localStorage.setItem(`edeastorm-theme-${userId}`, theme);
   }, [theme, session?.user?.id, username]);
 
   // Local state
@@ -233,7 +233,8 @@ export default function BoardPage() {
             break;
           case "UPDATE":
             // Skip updates for items currently being dragged to avoid interference
-            const isDragging = useNodeStore.getState().isDraggingNode === payload.new?.id;
+            const isDragging =
+              useNodeStore.getState().isDraggingNode === payload.new?.id;
             if (!isDragging) {
               addNode(payload.new as CanvasItem);
             }
@@ -505,21 +506,21 @@ export default function BoardPage() {
   const handleDragEnd = useCallback(
     async (id: string, x: number, y: number) => {
       // Get current version from store
-      const node = useNodeStore.getState().nodes.find(n => n.id === id);
+      const node = useNodeStore.getState().nodes.find((n) => n.id === id);
       const currentVersion = node?.version;
-      
+
       const updated = await updateCanvasItem(
-        id, 
+        id,
         { x, y },
         currentVersion // Pass version for optimistic locking
       );
-      
+
       if (updated && updated.version !== (currentVersion ?? 0) + 1) {
         // Version conflict - someone else modified this item
         // Update local state with the latest version from server
         updateNode(id, updated);
-        toast('Item was updated by another user', {
-          icon: '⚠️',
+        toast("Item was updated by another user", {
+          icon: "⚠️",
         });
       }
     },

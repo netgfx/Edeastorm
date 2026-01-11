@@ -1,4 +1,4 @@
--- IdeaFlow Database Functions & Utilities
+-- Edeastorm Database Functions & Utilities
 -- Migration: 002_create_functions.sql
 -- Description: Creates helper functions for the application
 

@@ -5,15 +5,15 @@ import dynamic from "next/dynamic";
 import { Trash2, Palette } from "lucide-react";
 import type { CanvasItem } from "@/types/canvas";
 import { useNodeStore } from "@/store/nodeStore";
-import {
-  NOTE_COLORS,
-  DEFAULT_NOTE_COLOR,
-} from "@/lib/constants";
+import { NOTE_COLORS, DEFAULT_NOTE_COLOR } from "@/lib/constants";
 import { ResizeHandle } from "./ResizeHandle";
 
 // Dynamically import CollaborativeEditor to avoid Yjs multiple import issues
 const CollaborativeEditor = dynamic(
-  () => import("./CollaborativeEditor").then((mod) => ({ default: mod.CollaborativeEditor })),
+  () =>
+    import("./CollaborativeEditor").then((mod) => ({
+      default: mod.CollaborativeEditor,
+    })),
   { ssr: false }
 );
 
@@ -134,14 +134,17 @@ export function StickyNote({
   // Click outside to stop editing
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (isEditing && !(e.target as Element).closest(`[data-note-id="${data?.id}"]`)) {
+      if (
+        isEditing &&
+        !(e.target as Element).closest(`[data-note-id="${data?.id}"]`)
+      ) {
         setEditableNode(null);
       }
     };
 
     if (isEditing) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [isEditing, data?.id, setEditableNode]);
 
@@ -187,7 +190,7 @@ export function StickyNote({
           className="relative w-full h-full flex items-center justify-center p-4"
           onDoubleClick={!readOnly ? handleDoubleClick : undefined}
           style={{
-            pointerEvents: isEditing ? 'auto' : 'none',
+            pointerEvents: isEditing ? "auto" : "none",
           }}
         >
           {data?.id && (
@@ -196,7 +199,7 @@ export function StickyNote({
               placeholder="Add text..."
               onUpdate={handleEditorUpdate}
               editable={isEditing && !readOnly}
-              initialContent={data.metadata?.title || ''}
+              initialContent={data.metadata?.title || ""}
               className="w-full h-full text-center text-zinc-900"
             />
           )}

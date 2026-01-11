@@ -4,7 +4,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Sparkles, Mail, Lock, CheckCircle2 } from "lucide-react";
@@ -33,10 +33,21 @@ function SignInContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const error = searchParams.get("error");
   const verified = searchParams.get("verified");
+  const retry = searchParams.get("retry");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Show retry toast on mount if retry parameter is present
+  useEffect(() => {
+    if (retry === "true") {
+      toast.error("Authentication timed out. Please try signing in again.", {
+        duration: 5000,
+        icon: "⏳",
+      });
+    }
+  }, [retry]);
 
   const handleGoogleSignIn = () => {
     signIn("google", { callbackUrl });

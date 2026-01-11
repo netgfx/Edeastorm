@@ -174,11 +174,14 @@ export async function updateCanvasItem(
 ): Promise<CanvasItem | null> {
   // If version is provided, use optimistic locking
   if (expectedVersion !== undefined) {
-    const { data, error } = await supabase.rpc('update_canvas_item_with_version', {
-      p_id: itemId,
-      p_expected_version: expectedVersion,
-      p_updates: updates as any,
-    });
+    const { data, error } = await supabase.rpc(
+      "update_canvas_item_with_version",
+      {
+        p_id: itemId,
+        p_expected_version: expectedVersion,
+        p_updates: updates as any,
+      }
+    );
 
     if (error) {
       console.error("Error updating canvas item with version:", error);
@@ -702,7 +705,8 @@ export async function reorderBoardImages(
 export async function getOrganizationMembers(orgId: string) {
   const { data, error } = await supabase
     .from("organization_members")
-    .select(`
+    .select(
+      `
       *,
       profiles:user_id (
         id,
@@ -710,7 +714,8 @@ export async function getOrganizationMembers(orgId: string) {
         email,
         avatar_url
       )
-    `)
+    `
+    )
     .eq("organization_id", orgId);
 
   if (error) {
@@ -726,54 +731,22 @@ export async function inviteMember(
   email: string,
   role: "admin" | "editor" | "viewer" = "viewer"
 ) {
-  // Check if user already exists in members
-  // This requires a join or separate check, but for now let's just try to insert invitation
-  // Ideally we check if profile exists and add directly, but for "Invite via email" flow:
-  // 1. Check if profile exists with this email
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", email)
-    .single();
+  // Use server-side API route to bypass RLS issues with NextAuth
+  const response = await fetch(`/api/organizations/${orgId}/invite`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, role }),
+  });
 
-  if (profiles) {
-    // User exists, add to members directly
-    const { error } = await supabase.from("organization_members").insert({
-      organization_id: orgId,
-      user_id: profiles.id,
-      role,
-    });
-    
-    if (error) {
-      // Check for duplicate
-      if (error.code === '23505') { // unique_violation
-         return { success: false, error: "User is already a member" };
-      }
-      return { success: false, error: error.message };
-    }
-    return { success: true, message: "User added to team" };
-  } else {
-    // User does not exist, create invitation
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    const { error } = await supabase.from("organization_invitations").insert({
-      organization_id: orgId,
-      email,
-      role,
-      token,
-    });
+  const result = await response.json();
 
-    if (error) {
-       if (error.code === '23505') {
-         return { success: false, error: "Invitation already sent" };
-       }
-       return { success: false, error: error.message };
-    }
-    
-    // Here we would send the email
-    console.log(`[MOCK EMAIL] Invite sent to ${email} with token ${token}`);
-    
-    return { success: true, message: "Invitation sent" };
+  if (!response.ok) {
+    return { success: false, error: result.error || "Failed to invite member" };
   }
+
+  return result;
 }
 
 export async function removeMember(orgId: string, userId: string) {
@@ -811,25 +784,30 @@ export async function updateMemberRole(
 export async function getUserOrganizations(userId: string) {
   const { data, error } = await supabase
     .from("organization_members")
-    .select(`
+    .select(
+      `
       role,
       organization:organization_id (
         id,
         name,
         slug
       )
-    `)
+    `
+    )
     .eq("user_id", userId);
 
   if (error) {
-    console.error("Error fetching user organizations:", JSON.stringify(error, null, 2));
+    console.error(
+      "Error fetching user organizations:",
+      JSON.stringify(error, null, 2)
+    );
     return [];
   }
 
-  return (data || []).map(d => ({
+  return (data || []).map((d) => ({
     // @ts-ignore
     ...d.organization,
-    role: d.role
+    role: d.role,
   }));
 }
 
