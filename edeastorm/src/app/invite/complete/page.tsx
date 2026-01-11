@@ -109,8 +109,8 @@ function CompleteInviteContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <div className="mb-6">
-          <Logo size="large" />
+        <div className="mb-6 flex justify-center">
+          <Logo width={64} height={64} />
         </div>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Completing your invitation...</p>

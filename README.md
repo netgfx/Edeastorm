@@ -16,6 +16,8 @@ v1.0
 - export action items from a specific board
 - API
 - Link with stripe program, client-wiring, monthly, yearly plan
+- Test invitation flows, add more providers
+- Add version
 - Secure free, vs monthly, and yearly and over/underpaid
 - Legal (Terms of use)
 - GDPR Compliance

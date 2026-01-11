@@ -83,8 +83,8 @@ function AcceptInviteContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="mb-6">
-            <Logo size="large" />
+          <div className="mb-6 flex justify-center">
+            <Logo width={64} height={64} />
           </div>
           <div className="text-red-600 text-5xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
@@ -120,8 +120,8 @@ function AcceptInviteContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
-        <div className="mb-6 text-center">
-          <Logo size="large" />
+        <div className="mb-6 flex justify-center text-center">
+          <Logo width={64} height={64} />
         </div>
 
         <div className="text-center mb-8">

@@ -68,7 +68,9 @@ function ErrorContent() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-6">
-          <Logo size="large" />
+          <div className="flex justify-center">
+            <Logo width={64} height={64} />
+          </div>
         </div>
 
         {errorInfo.autoRetry ? (
