@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { summarizeSession } from '@/lib/ai-services';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Board ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Verify user has access to the board (SECURITY FIX)
+    // RPC function not in generated types yet, using any
+    const { data: boardAccess, error: accessError } = await (supabaseAdmin() as any)
+      .rpc('check_board_access', {
+        p_board_id: boardId,
+        p_user_id: session.user.id
+      });
+
+    if (accessError) {
+      console.error('Board access check error:', accessError);
+      return NextResponse.json(
+        { error: 'Failed to verify board access' },
+        { status: 500 }
+      );
+    }
+
+    const access = boardAccess?.[0];
+    if (!access?.has_access || !['editor', 'admin'].includes(access.access_role)) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions. Editor or admin access required.' },
+        { status: 403 }
       );
     }
 

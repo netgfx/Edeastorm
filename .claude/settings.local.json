@@ -6,7 +6,12 @@
       "Bash(npx supabase db reset:*)",
       "Bash(npx supabase migration:*)",
       "Bash(node run-migration.js:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)"
     ]
   }
 }

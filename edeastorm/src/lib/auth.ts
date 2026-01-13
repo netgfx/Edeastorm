@@ -6,6 +6,13 @@ import { supabaseAdmin } from "@/lib/supabase";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { supabase } from "@/lib/supabase";
+import {
+  logAuthLogin,
+  logAuthSignup,
+  logAuthFailed,
+  ActivityActions,
+  activityLogger,
+} from "@/lib/activity-logger";
 
 // Configure fetch with timeout for OAuth providers
 const fetchWithTimeout = async (
@@ -90,6 +97,10 @@ export const authConfig: NextAuthConfig = {
             ":",
             error
           );
+          // Log failed login attempt
+          await logAuthFailed(credentials.email as string, {
+            error_message: error?.message || "Invalid credentials",
+          });
           throw new Error(error?.message || "Invalid email or password");
         }
 
@@ -189,6 +200,26 @@ export const authConfig: NextAuthConfig = {
         if (!existingProfile) {
           console.log("Creating basic profile for:", user.email);
 
+          // Check for pending invitation before creating profile
+          // The trigger will handle the org assignment, but we log it here
+          const { data: pendingInvite } = await supabase
+            .from("organization_invitations")
+            .select("organization_id, role")
+            .eq("email", user.email)
+            .gt("expires_at", new Date().toISOString())
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (pendingInvite) {
+            console.log(
+              "Found pending invitation for:",
+              user.email,
+              "to org:",
+              pendingInvite.organization_id
+            );
+          }
+
           const { error: insertError } = await supabase
             .from("profiles")
             .insert({
@@ -197,7 +228,7 @@ export const authConfig: NextAuthConfig = {
               full_name: user.name || user.email.split("@")[0],
               avatar_url: user.image,
               role: "contributor",
-              // organization_id is left null, will be set during onboarding or invitation acceptance
+              // organization_id is left null, will be set by trigger based on invitation or new org
             });
 
           if (insertError) {
@@ -209,7 +240,18 @@ export const authConfig: NextAuthConfig = {
             // It might be fixed in the subsequent flow
           } else {
             console.log("Profile created successfully for:", user.email);
+            // Log user signup
+            await logAuthSignup(supabaseUser.id, account?.provider || "unknown", {
+              email: user.email,
+              provider: account?.provider,
+            });
           }
+        } else {
+          // Existing user - log login
+          await logAuthLogin(user.id, account?.provider || "credentials", {
+            email: user.email,
+            provider: account?.provider,
+          });
         }
 
         console.log(

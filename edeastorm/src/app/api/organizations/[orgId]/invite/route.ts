@@ -4,6 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendInvitationEmail } from "@/lib/email";
+import {
+  logInvitationSent,
+  logMemberAdded,
+  activityLogger,
+} from "@/lib/activity-logger";
 
 export async function POST(
   request: NextRequest,
@@ -71,6 +76,15 @@ export async function POST(
         throw memberError;
       }
 
+      // Log member added activity
+      await logMemberAdded(
+        session.user.id,
+        orgId,
+        existingProfile.id,
+        role,
+        activityLogger.extractRequestMetadata(request)
+      );
+
       return NextResponse.json({
         success: true,
         message: "User added to team",
@@ -127,6 +141,19 @@ export async function POST(
         console.error("Failed to send invitation email:", emailResult.error);
         // Don't fail the request if email fails - invitation is still in DB
       }
+
+      // Log invitation sent activity
+      await logInvitationSent(
+        session.user.id,
+        orgId,
+        email,
+        role,
+        {
+          ...activityLogger.extractRequestMetadata(request),
+          organization_name: organization?.name,
+          email_sent: emailResult.success,
+        }
+      );
 
       return NextResponse.json({
         success: true,
