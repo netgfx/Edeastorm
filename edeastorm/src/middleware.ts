@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
+// Use Node.js runtime instead of Edge runtime for crypto support
+export const runtime = "nodejs";
+
 // Routes that require authentication
 const protectedRoutes = ["/dashboard"];
 

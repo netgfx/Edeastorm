@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Trash2, Palette } from "lucide-react";
+import { Trash2, Palette, Pencil } from "lucide-react";
 import type { CanvasItem } from "@/types/canvas";
 import { useNodeStore } from "@/store/nodeStore";
 import { NOTE_COLORS, DEFAULT_NOTE_COLOR } from "@/lib/constants";
@@ -34,6 +34,7 @@ export function StickyNote({
 }: StickyNoteProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const lastTapRef = useRef<number>(0);
 
   const {
     selectedNode,
@@ -80,7 +81,7 @@ export function StickyNote({
     [data, onUpdate]
   );
 
-  // Handle double click to edit
+  // Handle double click/tap to edit
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -92,15 +93,29 @@ export function StickyNote({
     [data?.id, setEditableNode, readOnly]
   );
 
-  // Handle click to select
+  // Handle click/tap - with double-tap detection for mobile
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (data) {
-        setSelectedNode(data);
+
+      const now = Date.now();
+      const DOUBLE_TAP_THRESHOLD = 300; // ms
+
+      if (now - lastTapRef.current < DOUBLE_TAP_THRESHOLD) {
+        // Double tap detected - enter edit mode
+        if (data?.id && !readOnly) {
+          setEditableNode(data.id);
+        }
+        lastTapRef.current = 0; // Reset to prevent triple-tap triggering
+      } else {
+        // Single tap - select node
+        lastTapRef.current = now;
+        if (data) {
+          setSelectedNode(data);
+        }
       }
     },
-    [data, setSelectedNode]
+    [data, setSelectedNode, setEditableNode, readOnly]
   );
 
   // Handle content update from collaborative editor
@@ -170,6 +185,7 @@ export function StickyNote({
       <div
         ref={htmlRef}
         className="w-full h-full transition-all duration-200 cursor-grab active:cursor-grabbing flex flex-col relative overflow-hidden"
+        onDoubleClick={!readOnly ? handleDoubleClick : undefined}
         style={{
           backgroundColor: NOTE_COLORS[color] || color,
           boxShadow: isDragging
@@ -188,7 +204,6 @@ export function StickyNote({
         {/* Content wrapper */}
         <div
           className="relative w-full h-full flex items-center justify-center p-4"
-          onDoubleClick={!readOnly ? handleDoubleClick : undefined}
           style={{
             pointerEvents: isEditing ? "auto" : "none",
           }}
@@ -241,6 +256,22 @@ export function StickyNote({
             </div>
           )}
         </div>
+      )}
+
+      {/* Edit button (for mobile/touch devices) */}
+      {isSelected && !readOnly && !isEditing && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (data?.id) {
+              setEditableNode(data.id);
+            }
+          }}
+          className="absolute -top-3 right-6 w-8 h-8 bg-zinc-950 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 z-50 group/edit"
+          title="Edit text"
+        >
+          <Pencil className="w-4 h-4 text-violet-400 group-hover/edit:text-violet-300" />
+        </button>
       )}
 
       {/* Delete button (Outside overflow-hidden) */}

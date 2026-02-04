@@ -4,15 +4,28 @@
 
 An ideation platform
 
+## ⚠️ URGENT: Migration Required
+
+**Action Needed:** Apply migration `015_fix_invitation_race_condition.sql` to your Supabase database.
+
+See **[URGENT_FIX_REQUIRED.md](URGENT_FIX_REQUIRED.md)** for step-by-step instructions.
+
+**Without this migration, new users cannot sign up** (will get "Access Denied" error).
+
+---
+
 ## Recent Updates
 
 ### ✅ Fixed: Invitation Flow Race Condition (2026-01-13)
+
 Fixed critical issue where invited users were assigned to personal organizations instead of invited organizations. See [docs/INVITATION_FIX.md](edeastorm/supabase/migrations/README_INVITATION_FIX.md) for details.
 
 ### ✅ Implemented: Comprehensive Activity Logging (2026-01-13)
+
 Added enterprise-grade activity logging for security, compliance, and audit purposes. Tracks authentication, user management, invitations, and board access. See [docs/ACTIVITY_LOGGING.md](docs/ACTIVITY_LOGGING.md) for full documentation.
 
 **Quick Start:**
+
 ```typescript
 // Server-side logging
 import { logAuthLogin, logInvitationSent } from '@/lib/activity';
@@ -71,6 +84,18 @@ v1.0
 - SSO support for enterprises
 - Calculate costs and project prices for break-even and profit within 3 months
 - Add unit tests (vitest) and e2e testing with playwright MCP, verify flows, regression tests
+- Delete boards
+- Folders / Workspaces
+- test board invite
+- organizations UI
+- Show tier label on logo and inside profile
+- Change profile picture
+- Mobile friendly
+- Make stripe tiers and discount tokens (100%)
+-
+- new board -> pick org
+- clone board
+- copy url -> crawl and paste thumbnail
 
 v2.0
 

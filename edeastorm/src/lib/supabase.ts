@@ -26,12 +26,35 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Server-side Supabase client with service role (bypass RLS)
+// NOTE: Only use this for server-side operations where RLS bypass is truly needed
+// (e.g., admin operations, background jobs). Prefer supabaseAuth for user operations.
 export const supabaseAdmin = () => {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceRoleKey) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
   }
   return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
+/**
+ * Create an authenticated Supabase client using a NextAuth session token.
+ * This client will have the user's identity set, allowing RLS policies to work correctly.
+ *
+ * @param supabaseAccessToken - The JWT token from session.supabaseAccessToken
+ * @returns A Supabase client with the user's authentication context
+ */
+export const createAuthenticatedClient = (supabaseAccessToken: string) => {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${supabaseAccessToken}`,
+      },
+    },
     auth: {
       autoRefreshToken: false,
       persistSession: false,

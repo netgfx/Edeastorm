@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAuthenticatedClient, supabaseAdmin } from "@/lib/supabase";
 import { sendInvitationEmail } from "@/lib/email";
 import {
   logInvitationSent,
@@ -31,7 +31,10 @@ export async function POST(
       );
     }
 
-    const supabase = supabaseAdmin();
+    // Use authenticated client if we have a token, otherwise fall back to admin
+    const supabase = session.supabaseAccessToken
+      ? createAuthenticatedClient(session.supabaseAccessToken)
+      : supabaseAdmin();
 
     // Verify user is admin or editor of this organization
     const { data: membership } = await supabase

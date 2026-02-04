@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { supabase } from "@/lib/supabase";
+import jwt from "jsonwebtoken";
 import {
   logAuthLogin,
   logAuthSignup,
@@ -308,6 +309,28 @@ export const authConfig: NextAuthConfig = {
         session.user.id = (token.supabaseId || token.id) as string;
         session.user.role = (token.role || "contributor") as string;
         session.user.organizationId = token.organizationId as string | null;
+
+        // Generate a Supabase-compatible JWT for RLS
+        const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+        if (supabaseJwtSecret && session.user.id) {
+          const payload = {
+            aud: "authenticated",
+            exp: Math.floor(new Date(session.expires).getTime() / 1000),
+            sub: session.user.id,
+            email: session.user.email,
+            role: "authenticated",
+            // Include app_metadata for additional context
+            app_metadata: {
+              provider: "nextauth",
+            },
+            // Include user_metadata
+            user_metadata: {
+              full_name: session.user.name,
+              avatar_url: session.user.image,
+            },
+          };
+          session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
+        }
       }
       return session;
     },

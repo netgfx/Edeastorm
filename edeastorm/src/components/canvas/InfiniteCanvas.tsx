@@ -76,12 +76,10 @@ export function InfiniteCanvas({
 
   // Recenter canvas
   const recenter = useCallback(() => {
-    gsap.to("#draggable-area", {
-      scale: 1,
-      duration: 0.2,
-      ease: "power2.out",
-      transformOrigin: "center center",
-    });
+    const draggableArea = document.getElementById("draggable-area");
+    if (draggableArea) {
+      draggableArea.style.zoom = "1";
+    }
 
     const { x, y } = findCenter();
 
@@ -95,14 +93,12 @@ export function InfiniteCanvas({
     setCanvasScale(1.0);
   }, [setCanvasScale]);
 
-  // Zoom handler
+  // Zoom handler - use CSS zoom for crisp text rendering
   const onZoom = contextSafe((scale: number) => {
-    gsap.to("#draggable-area", {
-      scale: Number(scale.toFixed(2)),
-      duration: 0.1,
-      ease: "power1.out",
-      transformOrigin: "center center",
-    });
+    const draggableArea = document.getElementById("draggable-area");
+    if (draggableArea) {
+      draggableArea.style.zoom = String(scale.toFixed(2));
+    }
   });
 
   const handleZoom = useCallback(
