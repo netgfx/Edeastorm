@@ -80,7 +80,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     async function fetchData() {
       if (status === "authenticated" && session?.user?.id) {
         try {
-          const orgs = await getUserOrganizations(session.user.id);
+          const orgs = await getUserOrganizations();
           // @ts-ignore
           setUserOrgs(orgs);
 

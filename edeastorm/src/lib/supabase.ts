@@ -5,6 +5,7 @@ import type { Database } from "@/types/database";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let nextAuthSupabaseAccessToken: string | null = null;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
@@ -14,6 +15,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Client-side Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  accessToken: async () => nextAuthSupabaseAccessToken,
   auth: {
     persistSession: typeof window !== "undefined",
     autoRefreshToken: typeof window !== "undefined",
@@ -24,6 +26,22 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
+
+/**
+ * Keeps browser-side Supabase requests and Realtime channels scoped to the
+ * current NextAuth user. The token is minted in the Auth.js session callback.
+ */
+export function setSupabaseAccessToken(token: string | null) {
+  nextAuthSupabaseAccessToken = token;
+
+  if (typeof window !== "undefined") {
+    if (token) {
+      void supabase.realtime.setAuth(token);
+    } else {
+      void supabase.realtime.setAuth();
+    }
+  }
+}
 
 // Server-side Supabase client with service role (bypass RLS)
 // NOTE: Only use this for server-side operations where RLS bypass is truly needed

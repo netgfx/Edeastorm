@@ -14,6 +14,7 @@ import {
   ActivityActions,
   activityLogger,
 } from "@/lib/activity-logger";
+import { ensureUserWorkspace } from "@/lib/workspace-provisioning";
 
 // Configure fetch with timeout for OAuth providers
 const fetchWithTimeout = async (
@@ -179,8 +180,6 @@ export const authConfig: NextAuthConfig = {
             );
           }
 
-          supabaseUser = newUser.user;
-          console.log("Created Supabase Auth user with ID:", supabaseUser?.id);
         }
 
         if (!supabaseUser) {
@@ -253,6 +252,21 @@ export const authConfig: NextAuthConfig = {
             email: user.email,
             provider: account?.provider,
           });
+        }
+
+        try {
+          await ensureUserWorkspace({
+            id: supabaseUser.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          });
+        } catch (provisioningError) {
+          console.error(
+            "Unable to provision a workspace during sign in:",
+            provisioningError
+          );
+          return false;
         }
 
         console.log(

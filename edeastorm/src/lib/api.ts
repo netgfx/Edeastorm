@@ -9,6 +9,7 @@ import type {
   Position,
   BoardImage,
 } from "@/types/canvas";
+import type { MemberWithProfile, OrgWithRole } from "@/types/dashboard";
 import { useGlobalStore } from "@/store/globalStore";
 import { useNodeStore } from "@/store/nodeStore";
 import { LAST_SEEN_UPDATE_THRESHOLD } from "@/lib/constants";
@@ -711,28 +712,20 @@ export async function reorderBoardImages(
 // TEAM MANAGEMENT OPERATIONS
 // ============================================
 
-export async function getOrganizationMembers(orgId: string) {
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select(
-      `
-      *,
-      profiles:user_id (
-        id,
-        full_name,
-        email,
-        avatar_url
-      )
-    `
-    )
-    .eq("organization_id", orgId);
+export async function getOrganizationMembers(
+  orgId: string
+): Promise<MemberWithProfile[]> {
+  const response = await fetch(
+    `/api/organizations/${encodeURIComponent(orgId)}?resource=members`
+  );
+  const result = await response.json();
 
-  if (error) {
-    console.error("Error fetching members:", error);
+  if (!response.ok) {
+    console.error("Error fetching members:", result.error);
     return [];
   }
 
-  return data;
+  return result.members || [];
 }
 
 export async function inviteMember(
@@ -790,46 +783,32 @@ export async function updateMemberRole(
   return true;
 }
 
-export async function getUserOrganizations(userId: string) {
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select(
-      `
-      role,
-      organization:organization_id (
-        id,
-        name,
-        slug
-      )
-    `
-    )
-    .eq("user_id", userId);
+export async function getUserOrganizations(): Promise<OrgWithRole[]> {
+  const response = await fetch("/api/workspaces/bootstrap", {
+    method: "POST",
+  });
+  const result = await response.json();
 
-  if (error) {
-    console.error(
-      "Error fetching user organizations:",
-      JSON.stringify(error, null, 2)
-    );
+  if (!response.ok) {
+    console.error("Error fetching user organizations:", result.error);
     return [];
   }
 
-  return (data || []).map((d) => ({
-    // @ts-ignore
-    ...d.organization,
-    role: d.role,
-  }));
+  return result.organizations || [];
 }
 
-export async function getOrganizationBoards(orgId: string) {
-  const { data, error } = await supabase
-    .from("boards")
-    .select("*")
-    .eq("organization_id", orgId)
-    .order("updated_at", { ascending: false });
+export async function getOrganizationBoards(
+  orgId: string
+): Promise<Tables<"boards">[]> {
+  const response = await fetch(
+    `/api/organizations/${encodeURIComponent(orgId)}?resource=boards`
+  );
+  const result = await response.json();
 
-  if (error) {
-    console.error("Error fetching org boards:", error);
+  if (!response.ok) {
+    console.error("Error fetching org boards:", result.error);
     return [];
   }
-  return data;
+
+  return result.boards || [];
 }
