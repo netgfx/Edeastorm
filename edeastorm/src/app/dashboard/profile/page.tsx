@@ -14,6 +14,7 @@ import {
   User,
   Save,
   Loader2,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -47,6 +48,13 @@ const MOCK_RECEIPTS = [
   },
 ];
 
+interface VersionInfo {
+  version: string;
+  commit: string;
+  buildTime: string;
+  environment: string;
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -56,6 +64,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const [orgName, setOrgName] = useState("");
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -86,6 +95,22 @@ export default function ProfilePage() {
     }
     fetchData();
   }, [session, status]);
+
+  // Fetch application version
+  useEffect(() => {
+    async function fetchVersion() {
+      try {
+        const res = await fetch("/api/version");
+        if (res.ok) {
+          const data = await res.json();
+          setVersionInfo(data);
+        }
+      } catch (error) {
+        console.error("Error fetching version info:", error);
+      }
+    }
+    fetchVersion();
+  }, []);
 
   // Helper to get initials
   const getInitials = (name: string) => {
@@ -288,6 +313,53 @@ export default function ProfilePage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        {/* Application Info Section */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3 text-violet-400">
+            <Info className="w-5 h-5" />
+            <h2 className="text-lg font-medium uppercase tracking-wider">
+              Application Info
+            </h2>
+          </div>
+
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm text-zinc-500 font-medium mb-1 block">
+                  Version
+                </label>
+                <div className="text-lg font-medium">
+                  {versionInfo?.version ?? "Loading..."}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-zinc-500 font-medium mb-1 block">
+                  Environment
+                </label>
+                <div className="text-lg font-medium">
+                  {versionInfo?.environment ?? "Loading..."}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-zinc-500 font-medium mb-1 block">
+                  Commit
+                </label>
+                <div className="text-lg font-medium">
+                  {versionInfo?.commit ?? "Loading..."}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-zinc-500 font-medium mb-1 block">
+                  Build Time
+                </label>
+                <div className="text-lg font-medium">
+                  {versionInfo?.buildTime ?? "Loading..."}
+                </div>
+              </div>
             </div>
           </div>
         </section>
