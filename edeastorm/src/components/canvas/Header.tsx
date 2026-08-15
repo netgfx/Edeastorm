@@ -5,7 +5,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import sanitizeHtml from "sanitize-html";
-import { Type, Trash2 } from "lucide-react";
+import { Type, Trash2, Pencil } from "lucide-react";
 import type { CanvasItem } from "@/types/canvas";
 import { useNodeStore } from "@/store/nodeStore";
 import { htmlDecode } from "@/lib/utils";
@@ -47,6 +47,7 @@ export function Header({
   readOnly,
 }: HeaderProps) {
   const inputRef = useRef<HTMLElement>(null);
+  const lastTapRef = useRef<number>(0);
   const [isHovered, setIsHovered] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
 
@@ -131,23 +132,40 @@ export function Header({
 
   // Handle double-click to edit
   const handleDoubleClick = useCallback(() => {
-    if (data?.id) {
+    if (data?.id && !readOnly) {
       setEditableNode(data.id);
       setTimeout(() => {
         inputRef.current?.focus();
       }, 0);
     }
-  }, [data, setEditableNode]);
+  }, [data, setEditableNode, readOnly]);
 
-  // Handle click to select
+  // Handle click/tap - with double-tap detection for mobile
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!isEditing && data?.id) {
-        setSelectedNode(data);
+
+      const now = Date.now();
+      const DOUBLE_TAP_THRESHOLD = 300; // ms
+
+      if (now - lastTapRef.current < DOUBLE_TAP_THRESHOLD) {
+        // Double tap detected - enter edit mode
+        if (data?.id && !readOnly) {
+          setEditableNode(data.id);
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 0);
+        }
+        lastTapRef.current = 0; // Reset to prevent triple-tap triggering
+      } else {
+        // Single tap - select node
+        lastTapRef.current = now;
+        if (!isEditing && data?.id) {
+          setSelectedNode(data);
+        }
       }
     },
-    [data, isEditing, setSelectedNode]
+    [data, isEditing, setSelectedNode, setEditableNode, readOnly]
   );
 
   // Handle size change
@@ -289,6 +307,25 @@ export function Header({
             )}
           </div>
         </div>
+      )}
+
+      {/* Edit Button (for mobile/touch devices) */}
+      {isSelected && !isEditing && !isDragging && !readOnly && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (data?.id) {
+              setEditableNode(data.id);
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 0);
+            }
+          }}
+          className="absolute -top-3 right-6 w-8 h-8 bg-zinc-950 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-200 border border-zinc-800 hover:bg-zinc-800 z-50 group/edit"
+          title="Edit text"
+        >
+          <Pencil className="w-4 h-4 text-violet-400 group-hover/edit:text-violet-300" />
+        </button>
       )}
 
       {/* Delete Button */}

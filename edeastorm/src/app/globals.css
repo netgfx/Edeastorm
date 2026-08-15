@@ -21,6 +21,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Scrollbar styling */
@@ -53,6 +56,9 @@ body {
 .draggable-area {
   position: absolute;
   will-change: transform;
+  -webkit-font-smoothing: subpixel-antialiased;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
 }
 
 .snap-area {
@@ -69,6 +75,8 @@ body {
   word-break: break-word;
   overflow-wrap: break-word;
   line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .sticky-content:focus {
@@ -234,4 +242,42 @@ body {
 
 .animate-slide-down {
   animation: slide-down 0.2s ease-out;
+}
+
+/* Mobile/Touch friendly improvements */
+@media (pointer: coarse) {
+  /* Larger touch targets for buttons on touch devices */
+  .snap-area button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Disable hover effects on touch devices to prevent sticky hover states */
+  .group:hover .group-hover\:scale-110 {
+    transform: none;
+  }
+}
+
+/* Prevent text selection during drag on mobile */
+.snap-area {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Allow text selection when editing */
+.snap-area [contenteditable="true"],
+.snap-area .ProseMirror {
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: auto;
+}
+
+/* Better touch feedback for interactive elements */
+@media (hover: none) {
+  button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
 }

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useEditorStore } from '@/store/editorStore';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -30,10 +31,10 @@ export function findCenter(live: boolean = false) {
   const aBounds = area.getBoundingClientRect();
 
   if (live) {
-    // Get scale from the area's transform style
-    const style = window.getComputedStyle(area);
-    const matrix = new DOMMatrix(style.transform);
-    const scale = matrix.a || 1;
+    // Use the live canvas zoom from the editor store, since zoom is applied
+    // via CSS `zoom` (not transform: scale), so it never appears in the
+    // computed transform matrix.
+    const scale = useEditorStore.getState().canvasScale || 1;
 
     return {
       x: Math.round((-1 * aBounds.left + cBounds.left + cBounds.width / 2) / scale),

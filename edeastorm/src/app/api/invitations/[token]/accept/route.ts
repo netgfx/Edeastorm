@@ -3,6 +3,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import {
+  logInvitationAccepted,
+  activityLogger,
+} from "@/lib/activity-logger";
 
 export async function POST(
   request: NextRequest,
@@ -154,33 +158,57 @@ export async function POST(
     // Use the profile ID from the database
     const profileId = userProfile.id;
 
-    // Update profile with organization if it's not set (onboarding)
-    // or just leave it. The organization_members is the source of truth for access.
-    // We can update default org context if we want.
-    await supabase
-      .from("profiles")
-      .update({
-        organization_id: invitation.organization_id,
-        role: invitation.role,
-      })
-      .eq("id", profileId);
-
-    // Add user to organization
-    const { error: memberError } = await supabase
+    // Check if user is already a member (may have been added by trigger during profile creation)
+    const { data: existingMember } = await supabase
       .from("organization_members")
-      .insert({
-        organization_id: invitation.organization_id,
-        user_id: profileId,
-        role: invitation.role,
-      });
+      .select("id")
+      .eq("organization_id", invitation.organization_id)
+      .eq("user_id", profileId)
+      .single();
 
-    if (memberError && memberError.code !== "23505") throw memberError;
+    if (!existingMember) {
+      // Add user to organization if not already a member
+      const { error: memberError } = await supabase
+        .from("organization_members")
+        .insert({
+          organization_id: invitation.organization_id,
+          user_id: profileId,
+          role: invitation.role,
+        });
+
+      if (memberError && memberError.code !== "23505") throw memberError;
+
+      // Update profile with organization if it's not set
+      await supabase
+        .from("profiles")
+        .update({
+          organization_id: invitation.organization_id,
+          role: invitation.role,
+        })
+        .eq("id", profileId);
+    } else {
+      console.log(
+        "User already member of organization (added by trigger):",
+        profileId
+      );
+    }
 
     // Delete the invitation after successful acceptance
     await supabase
       .from("organization_invitations")
       .delete()
       .eq("id", invitation.id);
+
+    // Log invitation acceptance
+    await logInvitationAccepted(
+      profileId,
+      invitation.organization_id,
+      {
+        ...activityLogger.extractRequestMetadata(request),
+        role: invitation.role,
+        inviter_id: invitation.invited_by ?? undefined,
+      }
+    );
 
     return NextResponse.json({
       success: true,

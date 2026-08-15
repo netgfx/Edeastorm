@@ -9,6 +9,7 @@ import type {
   Position,
   BoardImage,
 } from "@/types/canvas";
+import type { MemberWithProfile, OrgWithRole } from "@/types/dashboard";
 import { useGlobalStore } from "@/store/globalStore";
 import { useNodeStore } from "@/store/nodeStore";
 import { LAST_SEEN_UPDATE_THRESHOLD } from "@/lib/constants";
@@ -27,27 +28,30 @@ export async function createBoard(data: {
   organizationId: string;
   createdBy: string;
 }): Promise<Tables<"boards"> | null> {
-  const { data: board, error } = await supabase
-    .from("boards")
-    .insert({
+  // Use server-side API route to bypass RLS issues with NextAuth
+  const response = await fetch("/api/boards", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       title: data.title,
-      short_id: generateShortId(),
-      problem_statement: data.problemStatement,
+      problemStatement: data.problemStatement,
       description: data.description,
-      is_public: data.isPublic ?? false,
-      team_id: data.teamId ?? null,
-      organization_id: data.organizationId,
-      created_by: data.createdBy,
-    } as any)
-    .select()
-    .single();
+      isPublic: data.isPublic,
+      teamId: data.teamId,
+      organizationId: data.organizationId,
+    }),
+  });
 
-  if (error) {
-    console.error("Error creating board:", error);
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    console.error("Error creating board:", result.error);
     return null;
   }
 
-  return board;
+  return result.board;
 }
 
 export async function getBoardByShortId(
@@ -87,15 +91,24 @@ export async function updateBoard(
   return data;
 }
 
-export async function deleteBoard(boardId: string): Promise<boolean> {
-  const { error } = await supabase.from("boards").delete().eq("id", boardId);
+export async function deleteBoard(boardId: string): Promise<{ success: boolean; error?: string }> {
+  // Use server-side API route to bypass RLS and check permissions
+  const response = await fetch("/api/boards", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ boardId }),
+  });
 
-  if (error) {
-    console.error("Error deleting board:", error);
-    return false;
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    console.error("Error deleting board:", result.error);
+    return { success: false, error: result.error };
   }
 
-  return true;
+  return { success: true };
 }
 
 export async function getUserBoards(
@@ -241,34 +254,32 @@ export async function joinRoom(
   userId: string | null,
   username: string
 ): Promise<Tables<"room_users"> | null> {
-  // Check if user already exists in room
+  // For authenticated users, use server-side API route to bypass RLS
   if (userId) {
-    const { data: existing } = await supabase
-      .from("room_users")
-      .select("*")
-      .eq("board_id", boardId)
-      .eq("user_id", userId)
-      .single();
+    const response = await fetch("/api/rooms/join", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ boardId, username }),
+    });
 
-    if (existing) {
-      // Update last_seen
-      const { data } = await supabase
-        .from("room_users")
-        // @ts-ignore
-        .update({ last_seen: new Date().toISOString(), is_active: true })
-        .eq("id", existing.id)
-        .select()
-        .single();
-      return data;
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      console.error("Error joining room:", result.error);
+      return null;
     }
+
+    return result.roomUser;
   }
 
-  // Create new room user
+  // For anonymous users, use direct Supabase client (if RLS allows)
   const { data, error } = await supabase
     .from("room_users")
     .insert({
       board_id: boardId,
-      user_id: userId,
+      user_id: null,
       username,
       color:
         "#" +
@@ -305,18 +316,17 @@ export async function leaveRoom(roomUserId: string): Promise<boolean> {
 export async function getRoomUsers(
   boardId: string
 ): Promise<Tables<"room_users">[]> {
-  const { data, error } = await supabase
-    .from("room_users")
-    .select("*")
-    .eq("board_id", boardId)
-    .eq("is_active", true);
+  // Use server-side API route to bypass RLS issues with NextAuth
+  const response = await fetch(`/api/rooms/users?boardId=${encodeURIComponent(boardId)}`);
 
-  if (error) {
-    console.error("Error fetching room users:", JSON.stringify(error, null, 2));
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    console.error("Error fetching room users:", result.error);
     return [];
   }
 
-  return data ?? [];
+  return result.users ?? [];
 }
 
 export async function updateUserCursor(
@@ -702,28 +712,20 @@ export async function reorderBoardImages(
 // TEAM MANAGEMENT OPERATIONS
 // ============================================
 
-export async function getOrganizationMembers(orgId: string) {
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select(
-      `
-      *,
-      profiles:user_id (
-        id,
-        full_name,
-        email,
-        avatar_url
-      )
-    `
-    )
-    .eq("organization_id", orgId);
+export async function getOrganizationMembers(
+  orgId: string
+): Promise<MemberWithProfile[]> {
+  const response = await fetch(
+    `/api/organizations/${encodeURIComponent(orgId)}?resource=members`
+  );
+  const result = await response.json();
 
-  if (error) {
-    console.error("Error fetching members:", error);
+  if (!response.ok) {
+    console.error("Error fetching members:", result.error);
     return [];
   }
 
-  return data;
+  return result.members || [];
 }
 
 export async function inviteMember(
@@ -781,46 +783,32 @@ export async function updateMemberRole(
   return true;
 }
 
-export async function getUserOrganizations(userId: string) {
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select(
-      `
-      role,
-      organization:organization_id (
-        id,
-        name,
-        slug
-      )
-    `
-    )
-    .eq("user_id", userId);
+export async function getUserOrganizations(): Promise<OrgWithRole[]> {
+  const response = await fetch("/api/workspaces/bootstrap", {
+    method: "POST",
+  });
+  const result = await response.json();
 
-  if (error) {
-    console.error(
-      "Error fetching user organizations:",
-      JSON.stringify(error, null, 2)
-    );
+  if (!response.ok) {
+    console.error("Error fetching user organizations:", result.error);
     return [];
   }
 
-  return (data || []).map((d) => ({
-    // @ts-ignore
-    ...d.organization,
-    role: d.role,
-  }));
+  return result.organizations || [];
 }
 
-export async function getOrganizationBoards(orgId: string) {
-  const { data, error } = await supabase
-    .from("boards")
-    .select("*")
-    .eq("organization_id", orgId)
-    .order("updated_at", { ascending: false });
+export async function getOrganizationBoards(
+  orgId: string
+): Promise<Tables<"boards">[]> {
+  const response = await fetch(
+    `/api/organizations/${encodeURIComponent(orgId)}?resource=boards`
+  );
+  const result = await response.json();
 
-  if (error) {
-    console.error("Error fetching org boards:", error);
+  if (!response.ok) {
+    console.error("Error fetching org boards:", result.error);
     return [];
   }
-  return data;
+
+  return result.boards || [];
 }

@@ -93,6 +93,17 @@ export function CollaborativeEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, documentId]);
 
+  // Update editable state when prop changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(editable);
+      if (editable) {
+        // Focus the editor when it becomes editable
+        editor.commands.focus("end");
+      }
+    }
+  }, [editor, editable]);
+
   if (!editor) {
     return <div className={className}>Loading editor...</div>;
   }

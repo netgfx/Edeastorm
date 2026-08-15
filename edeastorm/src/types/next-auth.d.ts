@@ -9,6 +9,7 @@ declare module 'next-auth' {
       role: string;
       organizationId: string | null;
     } & DefaultSession['user'];
+    supabaseAccessToken?: string;
   }
 
   interface User extends DefaultUser {

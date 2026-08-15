@@ -6,6 +6,15 @@ import { supabaseAdmin } from "@/lib/supabase";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { supabase } from "@/lib/supabase";
+import jwt from "jsonwebtoken";
+import {
+  logAuthLogin,
+  logAuthSignup,
+  logAuthFailed,
+  ActivityActions,
+  activityLogger,
+} from "@/lib/activity-logger";
+import { ensureUserWorkspace } from "@/lib/workspace-provisioning";
 
 // Configure fetch with timeout for OAuth providers
 const fetchWithTimeout = async (
@@ -90,6 +99,10 @@ export const authConfig: NextAuthConfig = {
             ":",
             error
           );
+          // Log failed login attempt
+          await logAuthFailed(credentials.email as string, {
+            error_message: error?.message || "Invalid credentials",
+          });
           throw new Error(error?.message || "Invalid email or password");
         }
 
@@ -167,8 +180,6 @@ export const authConfig: NextAuthConfig = {
             );
           }
 
-          supabaseUser = newUser.user;
-          console.log("Created Supabase Auth user with ID:", supabaseUser?.id);
         }
 
         if (!supabaseUser) {
@@ -189,6 +200,26 @@ export const authConfig: NextAuthConfig = {
         if (!existingProfile) {
           console.log("Creating basic profile for:", user.email);
 
+          // Check for pending invitation before creating profile
+          // The trigger will handle the org assignment, but we log it here
+          const { data: pendingInvite } = await supabase
+            .from("organization_invitations")
+            .select("organization_id, role")
+            .eq("email", user.email)
+            .gt("expires_at", new Date().toISOString())
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (pendingInvite) {
+            console.log(
+              "Found pending invitation for:",
+              user.email,
+              "to org:",
+              pendingInvite.organization_id
+            );
+          }
+
           const { error: insertError } = await supabase
             .from("profiles")
             .insert({
@@ -197,7 +228,7 @@ export const authConfig: NextAuthConfig = {
               full_name: user.name || user.email.split("@")[0],
               avatar_url: user.image,
               role: "contributor",
-              // organization_id is left null, will be set during onboarding or invitation acceptance
+              // organization_id is left null, will be set by trigger based on invitation or new org
             });
 
           if (insertError) {
@@ -209,7 +240,33 @@ export const authConfig: NextAuthConfig = {
             // It might be fixed in the subsequent flow
           } else {
             console.log("Profile created successfully for:", user.email);
+            // Log user signup
+            await logAuthSignup(supabaseUser.id, account?.provider || "unknown", {
+              email: user.email,
+              provider: account?.provider,
+            });
           }
+        } else {
+          // Existing user - log login
+          await logAuthLogin(user.id, account?.provider || "credentials", {
+            email: user.email,
+            provider: account?.provider,
+          });
+        }
+
+        try {
+          await ensureUserWorkspace({
+            id: supabaseUser.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          });
+        } catch (provisioningError) {
+          console.error(
+            "Unable to provision a workspace during sign in:",
+            provisioningError
+          );
+          return false;
         }
 
         console.log(
@@ -266,6 +323,28 @@ export const authConfig: NextAuthConfig = {
         session.user.id = (token.supabaseId || token.id) as string;
         session.user.role = (token.role || "contributor") as string;
         session.user.organizationId = token.organizationId as string | null;
+
+        // Generate a Supabase-compatible JWT for RLS
+        const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+        if (supabaseJwtSecret && session.user.id) {
+          const payload = {
+            aud: "authenticated",
+            exp: Math.floor(new Date(session.expires).getTime() / 1000),
+            sub: session.user.id,
+            email: session.user.email,
+            role: "authenticated",
+            // Include app_metadata for additional context
+            app_metadata: {
+              provider: "nextauth",
+            },
+            // Include user_metadata
+            user_metadata: {
+              full_name: session.user.name,
+              avatar_url: session.user.image,
+            },
+          };
+          session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
+        }
       }
       return session;
     },

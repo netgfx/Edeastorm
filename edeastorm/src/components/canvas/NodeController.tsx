@@ -155,8 +155,15 @@ export function NodeController({
         onDragEnd?.(data.id, x, y);
       },
       onPress: function (e) {
-        e.stopPropagation();
+        // Don't stop propagation - let click events bubble up for double-click handling
         gsap.set(this.target, { zIndex: Draggable.zIndex++ });
+      },
+      onClick: function () {
+        // This fires when click happens without drag (movement < minimumMovement)
+        // Select the node on single click
+        const { setSelectedNode } =
+          require("@/store/nodeStore").useNodeStore.getState();
+        setSelectedNode(data);
       },
       liveSnap: snap
         ? {
